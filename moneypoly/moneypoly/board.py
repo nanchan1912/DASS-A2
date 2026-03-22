@@ -132,4 +132,3 @@ class Board:
     def __repr__(self):
         owned = sum(1 for p in self.properties if p.owner is not None)
         return f"Board({len(self.properties)} properties, {owned} owned)"
-
