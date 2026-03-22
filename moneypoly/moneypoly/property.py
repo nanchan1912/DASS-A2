@@ -1,27 +1,24 @@
 """Property module for board property tiles and colour groups."""
 
 
-class Property:  # pylint: disable=too-many-instance-attributes
+class Property:
     """Represents a single purchasable property tile on the MoneyPoly board."""
 
     FULL_GROUP_MULTIPLIER = 2
 
-    def __init__(  # pylint: disable=too-many-arguments,too-many-positional-arguments
-        self, name, position, price, base_rent, group=None
-    ):
+    def __init__(self, name, position, price, base_rent):
         self.name = name
         self.position = position
         self.price = price
         self.base_rent = base_rent
-        self.mortgage_value = price // 2
         self.owner = None
         self.is_mortgaged = False
-        self.houses = 0
+        self.group = None
 
-        # Register with the group immediately on creation
-        self.group = group
-        if group is not None and self not in group.properties:
-            group.properties.append(self)
+    @property
+    def mortgage_value(self):
+        """Return the cash received when mortgaging this property."""
+        return self.price // 2
 
     def get_rent(self):
         """
@@ -83,7 +80,7 @@ class PropertyGroup:
         """Return True if every property in this group is owned by `player`."""
         if player is None:
             return False
-        return any(p.owner == player for p in self.properties)
+        return all(p.owner == player for p in self.properties)
 
     def get_owner_counts(self):
         """Return a dict mapping each owner to how many properties they hold in this group."""

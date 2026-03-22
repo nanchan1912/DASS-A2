@@ -3,7 +3,7 @@
 from moneypoly.config import STARTING_BALANCE, BOARD_SIZE, GO_SALARY, JAIL_POSITION
 
 
-class Player:  # pylint: disable=too-many-instance-attributes
+class Player:
     """Represents a single player in a MoneyPoly game."""
 
     def __init__(self, name, balance=STARTING_BALANCE):
@@ -11,11 +11,42 @@ class Player:  # pylint: disable=too-many-instance-attributes
         self.balance = balance
         self.position = 0
         self.properties = []
-        self.in_jail = False
-        self.jail_turns = 0
-        self.get_out_of_jail_cards = 0
+        self._jail_state = {
+            "in_jail": False,
+            "jail_turns": 0,
+            "get_out_of_jail_cards": 0,
+        }
         self.is_eliminated = False
 
+    @property
+    def in_jail(self):
+        """Return whether the player is currently in jail."""
+        return self._jail_state["in_jail"]
+
+    @in_jail.setter
+    def in_jail(self, value):
+        """Set whether the player is currently in jail."""
+        self._jail_state["in_jail"] = value
+
+    @property
+    def jail_turns(self):
+        """Return how many turns the player has spent in jail."""
+        return self._jail_state["jail_turns"]
+
+    @jail_turns.setter
+    def jail_turns(self, value):
+        """Set how many turns the player has spent in jail."""
+        self._jail_state["jail_turns"] = value
+
+    @property
+    def get_out_of_jail_cards(self):
+        """Return number of get-out-of-jail cards held by the player."""
+        return self._jail_state["get_out_of_jail_cards"]
+
+    @get_out_of_jail_cards.setter
+    def get_out_of_jail_cards(self, value):
+        """Set number of get-out-of-jail cards held by the player."""
+        self._jail_state["get_out_of_jail_cards"] = value
 
     def add_money(self, amount):
         """Add funds to this player's balance. Amount must be non-negative."""
@@ -54,9 +85,8 @@ class Player:  # pylint: disable=too-many-instance-attributes
     def go_to_jail(self):
         """Send this player directly to the Jail square."""
         self.position = JAIL_POSITION
-        self.in_jail = True
-        self.jail_turns = 0
-
+        self._jail_state["in_jail"] = True
+        self._jail_state["jail_turns"] = 0
 
     def add_property(self, prop):
         """Add a property tile to this player's holdings."""
@@ -71,7 +101,6 @@ class Player:  # pylint: disable=too-many-instance-attributes
     def count_properties(self):
         """Return the number of properties this player currently owns."""
         return len(self.properties)
-
 
     def status_line(self):
         """Return a concise one-line status string for this player."""
