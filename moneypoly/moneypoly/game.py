@@ -24,11 +24,40 @@ class Game:
         self.bank = Bank()
         self.dice = Dice()
         self.players = [Player(name) for name in player_names]
-        self.current_index = 0
-        self.turn_number = 0
-        self.running = True
-        self.chance_deck = CardDeck(CHANCE_CARDS)
-        self.community_deck = CardDeck(COMMUNITY_CHEST_CARDS)
+        self._turn_state = {
+            "current_index": 0,
+            "turn_number": 0,
+            "running": True,
+        }
+        self._decks = {
+            "chance": CardDeck(CHANCE_CARDS),
+            "community": CardDeck(COMMUNITY_CHEST_CARDS),
+        }
+
+    @property
+    def current_index(self):
+        """Return the index of the current player in turn order."""
+        return self._turn_state["current_index"]
+
+    @property
+    def turn_number(self):
+        """Return how many full turns have elapsed."""
+        return self._turn_state["turn_number"]
+
+    @property
+    def running(self):
+        """Return whether the main game loop should continue running."""
+        return self._turn_state["running"]
+
+    @property
+    def chance_deck(self):
+        """Return the chance card deck."""
+        return self._decks["chance"]
+
+    @property
+    def community_deck(self):
+        """Return the community chest card deck."""
+        return self._decks["community"]
 
     def current_player(self):
         """Return the Player whose turn it currently is."""
@@ -36,8 +65,8 @@ class Game:
 
     def advance_turn(self):
         """Move to the next player in the rotation."""
-        self.current_index = (self.current_index + 1) % len(self.players)
-        self.turn_number += 1
+        self._turn_state["current_index"] = (self.current_index + 1) % len(self.players)
+        self._turn_state["turn_number"] += 1
 
     def play_turn(self):
         """Execute one complete turn for the current player."""
@@ -298,45 +327,65 @@ class Game:
         action = card["action"]
         value = card["value"]
 
-        if action == "collect":
-            amount = self.bank.pay_out(value)
-            player.add_money(amount)
+        handlers = {
+            "collect": self._card_collect,
+            "pay": self._card_pay,
+            "jail": self._card_jail,
+            "jail_free": self._card_jail_free,
+            "move_to": self._card_move_to,
+            "birthday": self._card_birthday,
+            "collect_from_all": self._card_collect_from_all,
+        }
+        handler = handlers.get(action)
+        if handler is not None:
+            handler(player, value)
 
-        elif action == "pay":
-            player.deduct_money(value)
-            self.bank.collect(value)
+    def _card_collect(self, player, value):
+        """Handle cards that grant money from the bank."""
+        amount = self.bank.pay_out(value)
+        player.add_money(amount)
 
-        elif action == "jail":
-            player.go_to_jail()
-            print(f"  {player.name} has been sent to Jail!")
+    def _card_pay(self, player, value):
+        """Handle cards that require a payment to the bank."""
+        player.deduct_money(value)
+        self.bank.collect(value)
 
-        elif action == "jail_free":
-            player.get_out_of_jail_cards += 1
-            print(f"  {player.name} now holds a Get Out of Jail Free card.")
+    def _card_jail(self, player, _value):
+        """Handle cards that send the player to jail."""
+        player.go_to_jail()
+        print(f"  {player.name} has been sent to Jail!")
 
-        elif action == "move_to":
-            old_pos = player.position
-            player.position = value
-            if value < old_pos:
-                player.add_money(GO_SALARY)
-                print(f"  {player.name} passed Go and collected ${GO_SALARY}.")
-            tile = self.board.get_tile_type(value)
-            if tile == "property":
-                prop = self.board.get_property_at(value)
-                if prop:
-                    self._handle_property_tile(player, prop)
+    def _card_jail_free(self, player, _value):
+        """Handle cards that grant a get-out-of-jail-free card."""
+        player.get_out_of_jail_cards += 1
+        print(f"  {player.name} now holds a Get Out of Jail Free card.")
 
-        elif action == "birthday":
-            for other in self.players:
-                if other != player and other.balance >= value:
-                    other.deduct_money(value)
-                    player.add_money(value)
+    def _card_move_to(self, player, value):
+        """Handle cards that move the player to a specific board position."""
+        old_pos = player.position
+        player.position = value
+        if value < old_pos:
+            player.add_money(GO_SALARY)
+            print(f"  {player.name} passed Go and collected ${GO_SALARY}.")
+        tile = self.board.get_tile_type(value)
+        if tile == "property":
+            prop = self.board.get_property_at(value)
+            if prop:
+                self._handle_property_tile(player, prop)
 
-        elif action == "collect_from_all":
-            for other in self.players:
-                if other != player and other.balance >= value:
-                    other.deduct_money(value)
-                    player.add_money(value)
+    def _card_birthday(self, player, value):
+        """Handle birthday cards by collecting from each other player."""
+        for other in self.players:
+            if other != player and other.balance >= value:
+                other.deduct_money(value)
+                player.add_money(value)
+
+    def _card_collect_from_all(self, player, value):
+        """Handle cards that collect money from every other player."""
+        for other in self.players:
+            if other != player and other.balance >= value:
+                other.deduct_money(value)
+                player.add_money(value)
 
     def _check_bankruptcy(self, player):
         """Eliminate `player` from the game if they are bankrupt."""
@@ -351,7 +400,7 @@ class Game:
             if player in self.players:
                 self.players.remove(player)
             if self.current_index >= len(self.players):
-                self.current_index = 0
+                self._turn_state["current_index"] = 0
 
     def find_winner(self):
         """Return the player with the highest net worth."""
