@@ -1,3 +1,5 @@
+"""Dice module for rolling and tracking doubles streaks."""
+
 import random
 
 class Dice:
@@ -6,6 +8,7 @@ class Dice:
     def __init__(self):
         self.die1 = 0
         self.die2 = 0
+        self.doubles_streak = 0
         self.reset()
 
     def reset(self):
