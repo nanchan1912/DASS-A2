@@ -1,3 +1,5 @@
+"""Global constants for MoneyPoly board rules and economy values."""
+
 STARTING_BALANCE = 1500
 GO_SALARY = 200
 BOARD_SIZE = 40
