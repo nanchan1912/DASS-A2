@@ -11,8 +11,13 @@ venv/
 
 # Test and lint outputs
 .pytest_cache/
+pytest-cache-files-*/
 .coverage
 htmlcov/
 pylint-debug.txt
 pylint-*.txt
 pylint-*.json
+
+# Local Docker image dumps
+quickcart_image/
+quickcart_image_x86/

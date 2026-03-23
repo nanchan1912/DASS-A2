@@ -9,7 +9,7 @@
 \usepackage[utf8]{inputenc}
 
 \title{Black Box API Testing Report\\QuickCart REST API}
-\author{}
+\author{Nandini}
 \date{}
 
 \begin{document}
@@ -35,7 +35,7 @@ Second, automated tests were written using only \texttt{pytest} and \texttt{requ
     \item boundary values.
 \end{itemize}
 
-The automated suite targets the API at \texttt{http://127.0.0.1:8080/api/v1}. Admin requests use the \texttt{X-Roll-Number} header, and user-scoped requests use both \texttt{X-Roll-Number} and \texttt{X-User-ID}.
+The automated suite targets the API at \texttt{http://127.0.0.1:8080/api/v1}. Admin requests use the \texttt{X-Roll-Number} header, and user-scoped requests use both \texttt{X-Roll-Number} and \texttt{X-User-ID}. The final submission uses the student's roll number, \texttt{2024111034}, in the test configuration and documented request examples.
 
 \section{Automated Execution Summary}
 The final automated run for the submitted black-box suite produced the following result:
@@ -129,7 +129,7 @@ The following bugs were reproduced by the automated test suite.
 \begin{itemize}
     \item Method: \texttt{POST}
     \item URL: \texttt{http://127.0.0.1:8080/api/v1/addresses}
-    \item Headers: \texttt{X-Roll-Number: 123456}, \texttt{X-User-ID: 1}
+    \item Headers: \texttt{X-Roll-Number: 2024111034}, \texttt{X-User-ID: 1}
     \item Body: \texttt{\{"label":"OTHER","street":"12345 Test Street <id>","city":"Delhi","pincode":"110011","is\_default":false\}}
 \end{itemize}
 \textbf{Expected result:} Address should be created successfully with \texttt{200}.\\
@@ -142,7 +142,7 @@ The following bugs were reproduced by the automated test suite.
 \begin{itemize}
     \item Method: \texttt{POST}
     \item URL: \texttt{http://127.0.0.1:8080/api/v1/cart/add}
-    \item Headers: \texttt{X-Roll-Number: 123456}, \texttt{X-User-ID: 1}
+    \item Headers: \texttt{X-Roll-Number: 2024111034}, \texttt{X-User-ID: 1}
     \item Body: \texttt{\{"product\_id":1,"quantity":0\}}
 \end{itemize}
 \textbf{Expected result:} API should reject quantity 0 with \texttt{400}.\\
@@ -155,7 +155,7 @@ The following bugs were reproduced by the automated test suite.
 \begin{itemize}
     \item Method: \texttt{GET}
     \item URL: \texttt{http://127.0.0.1:8080/api/v1/cart}
-    \item Headers: \texttt{X-Roll-Number: 123456}, \texttt{X-User-ID: 1}
+    \item Headers: \texttt{X-Roll-Number: 2024111034}, \texttt{X-User-ID: 1}
     \item Body: none
 \end{itemize}
 \textbf{Expected result:} For quantity 2 and unit price 120, subtotal should be 240.\\
@@ -168,7 +168,7 @@ The following bugs were reproduced by the automated test suite.
 \begin{itemize}
     \item Method: \texttt{GET}
     \item URL: \texttt{http://127.0.0.1:8080/api/v1/cart}
-    \item Headers: \texttt{X-Roll-Number: 123456}, \texttt{X-User-ID: 1}
+    \item Headers: \texttt{X-Roll-Number: 2024111034}, \texttt{X-User-ID: 1}
     \item Body: none
 \end{itemize}
 \textbf{Expected result:} Cart total should equal the sum of all item subtotals.\\
@@ -181,7 +181,7 @@ The following bugs were reproduced by the automated test suite.
 \begin{itemize}
     \item Method: \texttt{POST}
     \item URL: \texttt{http://127.0.0.1:8080/api/v1/wallet/pay}
-    \item Headers: \texttt{X-Roll-Number: 123456}, \texttt{X-User-ID: 1}
+    \item Headers: \texttt{X-Roll-Number: 2024111034}, \texttt{X-User-ID: 1}
     \item Body: \texttt{\{"amount":1\}}
 \end{itemize}
 \textbf{Expected result:} Wallet balance should decrease by exactly 1.\\
@@ -194,7 +194,7 @@ The following bugs were reproduced by the automated test suite.
 \begin{itemize}
     \item Method: \texttt{POST}
     \item URL: \texttt{http://127.0.0.1:8080/api/v1/checkout}
-    \item Headers: \texttt{X-Roll-Number: 123456}, \texttt{X-User-ID: 1}
+    \item Headers: \texttt{X-Roll-Number: 2024111034}, \texttt{X-User-ID: 1}
     \item Body: \texttt{\{"payment\_method":"COD"\}}
 \end{itemize}
 \textbf{Expected result:} API should reject empty-cart checkout with \texttt{400}.\\
@@ -207,7 +207,7 @@ The following bugs were reproduced by the automated test suite.
 \begin{itemize}
     \item Method: \texttt{GET}
     \item URL: \texttt{http://127.0.0.1:8080/api/v1/products/1/reviews} (product id varies by test data)
-    \item Headers: \texttt{X-Roll-Number: 123456}, \texttt{X-User-ID: 1}
+    \item Headers: \texttt{X-Roll-Number: 2024111034}, \texttt{X-User-ID: 1}
     \item Body: none
 \end{itemize}
 \textbf{Expected result:} Average rating should be the true decimal average.\\
@@ -220,7 +220,7 @@ The following bugs were reproduced by the automated test suite.
 \begin{itemize}
     \item Method: \texttt{PUT}
     \item URL: \texttt{http://127.0.0.1:8080/api/v1/support/tickets/<ticket\_id>}
-    \item Headers: \texttt{X-Roll-Number: 123456}, \texttt{X-User-ID: 1}
+    \item Headers: \texttt{X-Roll-Number: 2024111034}, \texttt{X-User-ID: 1}
     \item Body: \texttt{\{"status":"OPEN"\}} after the ticket is already in \texttt{IN\_PROGRESS}
 \end{itemize}
 \textbf{Expected result:} API should reject the backward transition with \texttt{400}.\\
@@ -230,3 +230,5 @@ The following bugs were reproduced by the automated test suite.
 The QuickCart black-box suite covers valid inputs, invalid inputs, missing fields, wrong data types, and boundary values using only the published API behavior. The final automated run found 8 confirmed API bugs while 36 other tests passed successfully. This shows that the API has many correct validation paths, but still contains important defects in address validation, cart calculation, wallet deduction, checkout validation, review averaging, and support-ticket workflow.
 
 \end{document}
+
+

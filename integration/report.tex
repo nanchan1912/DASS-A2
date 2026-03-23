@@ -33,8 +33,7 @@ StreetRace Manager is a command-line system built as a set of interacting module
 
 \textbf{Reputation System} was added because race outcomes can be used for longer-term progression. This module links completed races with driver progression and unlockable content.
 
-\section{Call Graph}
-
+\\section{Call Graph}`r`nThe call graph should be drawn by hand on one page. Each node should be a single function, and arrows should show function calls both within modules and across modules.`r`n`r`n
 The columns drawn include:
 \begin{itemize}
 \item Registration
@@ -74,7 +73,7 @@ The columns drawn include:
 \item \texttt{ReputationSystem.add\_reputation} $\rightarrow$ \texttt{RegistrationModule.get\_member}, \texttt{ReputationSystem.\_update\_tier}
 \item \texttt{ReputationSystem.get\_reputation\_status} $\rightarrow$ \texttt{RegistrationModule.get\_member}
 \end{itemize}
-
+Functions grouped in the same module column are internal to that module; arrows between columns show cross-module calls.
 \subsection{Call Graph Image}
 \begin{center}
 \fbox{\rule{0pt}{3in}\rule{0.9\linewidth}{0pt}}
@@ -150,3 +149,4 @@ All integration tests passed after the fixes above.
 The integration testing confirms that the modules do not only work individually, but also exchange data correctly. Registration controls identity and status, Crew Management controls roles and skills, Inventory acts as shared resource state, Race Management and Mission Planning enforce business rules, Results updates rankings and prize flow, and the additional Fuel and Reputation modules extend the system without breaking core interactions.
 
 \end{document}
+

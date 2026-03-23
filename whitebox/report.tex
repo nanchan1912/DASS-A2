@@ -1,0 +1,164 @@
+\documentclass[12pt]{article}
+\usepackage[a4paper,margin=1in]{geometry}
+\usepackage{array}
+\usepackage{booktabs}
+\usepackage{longtable}
+\usepackage[T1]{fontenc}
+\usepackage{hyperref}
+
+\title{MoneyPoly White Box Testing Report}
+\author{}
+\date{}
+
+\begin{document}
+\maketitle
+
+\section{Overview}
+This report documents the white-box testing work done on the MoneyPoly board game program. The goal was to study the internal control flow, improve code quality using \texttt{pylint}, design structural tests, find logical errors, and fix them.
+
+The final whitebox submission is stored in the \texttt{whitebox/} folder with the following important parts:
+\begin{itemize}
+\item \texttt{whitebox/code}: final runnable MoneyPoly code
+\item \texttt{whitebox/tests}: white-box test suite and recorded pytest output
+\item \texttt{whitebox/diagrams}: diagram artifacts
+\end{itemize}
+
+\\section{1.1 CFG}`r`nThe control flow graph was prepared for the final corrected version of the program. It should be drawn by hand on one page, and a module-level or class-level abstraction is acceptable as clarified by the teaching team.`r`n`r`n\begin{center}
+\fbox{\rule{0pt}{3in}\rule{0.9\linewidth}{0pt}}
+
+\small Hand-drawn control flow graph image goes here.
+\end{center}
+
+\section{1.2 Code Quality Analysis}
+The codebase was analyzed iteratively with \texttt{pylint}. The early iterations mainly addressed style and maintainability issues such as missing module docstrings, unused imports, long lines, and design warnings. Later iterations refactored code to remove warnings instead of only suppressing them.
+
+From the saved pylint artifacts:
+\begin{itemize}
+\item after Iteration 1, the code rating was \texttt{9.13/10}
+\item after Iteration 13, the code rating reached \texttt{10.00/10}
+\end{itemize}
+
+\subsection{Summary of Iterative Changes}
+\small
+\begin{longtable}{p{0.10\linewidth}p{0.84\linewidth}}
+\toprule
+\textbf{Iteration} & \textbf{Main Change} \\
+\midrule
+\endfirsthead
+\toprule
+\textbf{Iteration} & \textbf{Main Change} \\
+\midrule
+\endhead
+0 & Cleaned repository and ignored generated lint artifacts. \\
+1 & Added module docstrings and removed unused imports in \texttt{bank.py}. \\
+2 & Added module docstring and fixed singleton-comparison issue in \texttt{board.py}. \\
+3 & Added module docstring in \texttt{config.py}. \\
+4 & Fixed missing docstring issue in \texttt{dice.py}. \\
+5 & Initialized \texttt{doubles\_streak} in \texttt{dice.py}. \\
+6 & Added player module docstring and removed unused imports / variables in \texttt{player.py}. \\
+7 & Added docstrings and handled design warnings in \texttt{player.py} and \texttt{property.py}; also fixed the \texttt{unmortgage()} no-else-return issue. \\
+8 & Added module docstring and replaced bare \texttt{except} in \texttt{ui.py}. \\
+9 & Added temporary pylint suppression for property design warnings. \\
+10 & Replaced suppressions with refactoring in \texttt{player.py}, \texttt{property.py}, and \texttt{board.py}. \\
+11 & Cleaned \texttt{game.py} by removing unused imports, adding a module docstring, fixing \texttt{f-string-without-interpolation}, no-else-break, and superfluous parentheses. \\
+12 & Refactored state and card-handling attributes to reduce design warnings further. \\
+13 & Fixed long-line warnings and added the missing module docstring in \texttt{cards.py}. \\
+\bottomrule
+\end{longtable}
+\normalsize
+
+\subsection{What the Pylint Pass Improved}
+\begin{itemize}
+\item Better documentation through module and class docstrings.
+\item Cleaner imports and fewer unused variables.
+\item Safer exception handling.
+\item Less warning suppression and more real refactoring.
+\item Better readability in long data structures and game logic branches.
+\end{itemize}
+
+\section{1.3 White Box Test Cases}
+The test cases were designed from the program structure, not only from user-visible behavior. The final white-box suite is in \texttt{whitebox/tests/test\_whitebox\_full.py}. The tests cover:
+\begin{itemize}
+\item all major branches in the game flow
+\item key state changes such as balances, ownership, jail state, mortgage state, and rankings
+\item edge cases such as empty decks, zero or negative values, exact-balance purchases, and invalid player actions
+\end{itemize}
+
+\subsection{Initial and Final Test Results}
+The saved initial test execution in \texttt{whitebox/tests/pytest-whitebox-results.txt} showed:
+\begin{itemize}
+\item \texttt{76 passed}
+\item \texttt{15 failed}
+\end{itemize}
+
+After the fixes, the final whitebox execution result was:
+\begin{itemize}
+\item command used: \texttt{python -m pytest whitebox/tests -q}
+\item final result: \texttt{91 passed}
+\end{itemize}
+
+\subsection{Why the Test Cases Were Needed}
+\small
+\begin{longtable}{p{0.28\linewidth}p{0.30\linewidth}p{0.34\linewidth}}
+\toprule
+\textbf{Test Group} & \textbf{Why It Was Needed} & \textbf{What It Covered} \\
+\midrule
+\endfirsthead
+\toprule
+\textbf{Test Group} & \textbf{Why It Was Needed} & \textbf{What It Covered} \\
+\midrule
+\endhead
+Config sanity tests & To check that core constants are sensible before deeper logic is tested. & Starting balance, salary, board size, max turns, bank funds. \\
+Bank tests & To verify money flow, loan behavior, and invalid amount handling. & Collect, pay out, loans, summaries, negative inputs, reserve limits. \\
+Cards tests & To check deck cycling, empty-deck behavior, reshuffling, and representation safety. & Draw, peek, cards remaining, empty deck edge cases, \texttt{\_\_repr\_\_}. \\
+Dice tests & To verify all branches in rolling logic and doubles tracking. & Doubles, non-doubles, reset, full 1--6 range, description formatting. \\
+Player tests & To verify balance changes, movement, passing Go, jail state, and property lists. & Add/deduct money, salary on Go, jail transitions, property count. \\
+Property and group tests & To verify mortgage logic, rent logic, and ownership grouping. & Base rent, doubled rent, mortgage/unmortgage, availability, owner counts. \\
+Board tests & To verify tile lookup and board classification branches. & Property lookup, special tiles, purchasable tiles, owned/unowned lists. \\
+UI helper tests & To verify output-formatting branches and safe input helpers. & Banner printing, player card display, standings, board ownership, integer input, confirmation. \\
+Game flow tests & To verify the main branching logic of the program. & Turn advancement, jail handling, doubles, taxes, cards, properties, rent, trades, mortgages, auctions, bankruptcy, winner logic, menu paths. \\
+Main module tests & To verify startup and input validation logic. & Name parsing, successful setup, keyboard interrupt, setup errors. \\
+Additional failing-case tests & To intentionally trigger hidden logical issues and confirm that the fixes were correct. & Negative values, missing guards, reserve checks, invalid trades, exact-balance purchases, rent transfer, and player-count validation. \\
+\bottomrule
+\end{longtable}
+\normalsize
+
+\subsection{Errors Found by the White Box Tests}
+The initial failing tests pointed to 15 failing cases, which grouped into 7 main logical errors. These were corrected in the \texttt{Error \#} commits.
+
+\small
+\begin{longtable}{p{0.08\linewidth}p{0.30\linewidth}p{0.28\linewidth}p{0.26\linewidth}}
+\toprule
+\textbf{Error} & \textbf{Problem Found} & \textbf{Why the Test Was Needed} & \textbf{Fix Applied} \\
+\midrule
+\endfirsthead
+\toprule
+\textbf{Error} & \textbf{Problem Found} & \textbf{Why the Test Was Needed} & \textbf{Fix Applied} \\
+\midrule
+\endhead
+1 & \texttt{Bank.collect()} accepted a negative amount and reduced bank funds. & Negative-input tests are important because money-handling code should never silently behave like reverse collection. & Added a guard for \texttt{amount < 0} so the method returns immediately. \\
+2 & \texttt{CardDeck.cards\_remaining()} crashed on an empty deck. & Empty-container edge cases are common sources of runtime errors. & Added an empty-deck guard to return 0 safely. \\
+3 & \texttt{CardDeck.\_\_repr\_\_()} crashed on an empty deck. & A representation method should stay safe even in unusual states because it is often used during debugging. & Added an empty-deck guard before modulo arithmetic. \\
+4 & \texttt{Bank.give\_loan()} did not reduce bank funds and allowed loans larger than reserves. & State-based white-box tests showed that the bank and player balances became inconsistent. & Updated loan logic to deduct bank funds and raise \texttt{ValueError} when the loan exceeds reserves. \\
+5 & Several \texttt{game.py} behaviors were incorrect: too few players were allowed, exact-balance purchase failed, rent was not transferred to owner, invalid trades were accepted, and winner selection used the wrong comparison. & These paths sit in the most branch-heavy part of the program and directly affect gameplay outcome. & Added minimum-player validation, allowed exact-balance purchase, transferred rent correctly, rejected non-positive trade cash, and changed winner selection to use maximum balance. \\
+6 & Dice rolling used \texttt{1..5} instead of \texttt{1..6}. & Boundary-value testing is necessary for random-number logic because off-by-one bugs are easy to miss. & Changed both random rolls to the full six-sided range. \\
+7 & Player-name input allowed fewer than two players. & Startup validation must reject invalid game setup before the game begins. & Added a \texttt{ValueError} when fewer than two valid names are entered. \\
+\bottomrule
+\end{longtable}
+\normalsize
+
+\subsection{Examples of Important Edge Cases}
+\begin{itemize}
+\item zero and negative money values
+\item empty card decks
+\item exact-balance property purchase
+\item passing Go vs landing normally
+\item mortgaged property vs available property
+\item trade with zero or negative cash
+\item loan request larger than bank reserves
+\item invalid startup with fewer than two players
+\end{itemize}
+
+
+\end{document}
+

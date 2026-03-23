@@ -10,7 +10,7 @@ import requests
 
 
 BASE_URL = os.getenv("QUICKCART_BASE_URL", "http://127.0.0.1:8080/api/v1")
-ROLL_NUMBER = os.getenv("QUICKCART_ROLL_NUMBER", "123456")
+ROLL_NUMBER = os.getenv("QUICKCART_ROLL_NUMBER", "2024111034")
 
 
 def _require_json(response: requests.Response):
@@ -149,3 +149,4 @@ def get_cart(session: requests.Session, user_headers):
 def decimal_value(value) -> Decimal:
     """Stable decimal conversion for money/rating checks."""
     return Decimal(str(value))
+
