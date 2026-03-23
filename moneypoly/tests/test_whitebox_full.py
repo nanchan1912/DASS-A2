@@ -1012,8 +1012,8 @@ class TestAdditionalFailingCases(unittest.TestCase):
 
     def test_get_player_names_should_enforce_minimum_two(self):
         with patch("builtins.input", return_value="Solo"):
-            names = app_main.get_player_names()
-        self.assertGreaterEqual(len(names), 2)
+            with self.assertRaises(ValueError):
+                app_main.get_player_names()
 
     def test_bank_should_reject_loan_larger_than_reserves(self):
         bank = Bank()

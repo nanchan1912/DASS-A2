@@ -8,6 +8,8 @@ def get_player_names():
     print("Enter player names separated by commas (minimum 2 players):")
     raw = input("> ").strip()
     names = [n.strip() for n in raw.split(",") if n.strip()]
+    if len(names) < 2:
+        raise ValueError("At least two players are required.")
     return names
 
 
