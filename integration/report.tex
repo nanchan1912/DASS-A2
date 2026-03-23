@@ -1,0 +1,152 @@
+\documentclass[12pt]{article}
+\usepackage[a4paper,margin=1in]{geometry}
+\usepackage{array}
+\usepackage{booktabs}
+\usepackage{longtable}
+\usepackage{hyperref}
+\usepackage[T1]{fontenc}
+
+\title{StreetRace Manager\\Integration Testing Report}
+\author{}
+\date{}
+
+\begin{document}
+\maketitle
+
+\section{System Overview}
+StreetRace Manager is a command-line system built as a set of interacting modules. The required modules implemented are Registration, Crew Management, Inventory, Race Management, Results, and Mission Planning. Two additional modules were added: Fuel Management and Reputation System.
+
+\subsection{Modules Included}
+\begin{itemize}
+\item \textbf{Registration}: registers crew members and stores their name, role, and active status.
+\item \textbf{Crew Management}: updates roles and skill levels, and exposes available crew by role.
+\item \textbf{Inventory}: stores vehicles, spare parts, tools, and the shared cash balance.
+\item \textbf{Race Management}: creates races, registers participants, and changes race state.
+\item \textbf{Results}: records race outcomes, calculates prizes, and updates rankings.
+\item \textbf{Mission Planning}: creates missions, checks required roles, assigns crew, and awards mission rewards.
+\item \textbf{Fuel Management}: tracks fuel usage, checks race readiness, and charges refueling cost.
+\item \textbf{Reputation System}: tracks reputation points, tier progression, and unlocked content.
+\end{itemize}
+
+\subsection{Additional Modules Chosen}
+\textbf{Fuel Management} was added because race planning becomes more realistic when the system must check whether a car can actually complete a race. It also creates a direct integration with Inventory through refueling costs.
+
+\textbf{Reputation System} was added because race outcomes can be used for longer-term progression. This module links completed races with driver progression and unlockable content.
+
+\section{Call Graph}
+
+The columns drawn include:
+\begin{itemize}
+\item Registration
+\item Crew Management
+\item Inventory
+\item Race Management
+\item Results
+\item Mission Planning
+\item Fuel Management
+\item Reputation System
+\end{itemize}
+
+\subsection{The function nodes are as:}
+\begin{itemize}
+\item \textbf{Registration}: \texttt{register\_member}, \texttt{get\_member}, \texttt{member\_exists}, \texttt{get\_members\_by\_role}, \texttt{activate\_member}, \texttt{deactivate\_member}
+\item \textbf{Crew Management}: \texttt{assign\_role}, \texttt{update\_skill\_level}, \texttt{get\_skill\_level}, \texttt{list\_crew\_by\_role}, \texttt{get\_available\_drivers}, \texttt{get\_available\_mechanics}
+\item \textbf{Inventory}: \texttt{add\_vehicle}, \texttt{get\_vehicle}, \texttt{damage\_vehicle}, \texttt{repair\_vehicle}, \texttt{add\_cash}, \texttt{deduct\_cash}
+\item \textbf{Race Management}: \texttt{create\_race}, \texttt{register\_participant}, \texttt{start\_race}, \texttt{complete\_race}, \texttt{get\_race}, \texttt{get\_race\_participants}
+\item \textbf{Results}: \texttt{record\_race\_result}, \texttt{get\_driver\_ranking}, \texttt{get\_top\_drivers}, \texttt{update\_cash\_balance\_from\_race}
+\item \textbf{Mission Planning}: \texttt{create\_mission}, \texttt{check\_role\_availability}, \texttt{check\_roles\_availability}, \texttt{assign\_mission}, \texttt{complete\_mission}
+\item \textbf{Fuel Management}: \texttt{initialize\_vehicle\_fuel}, \texttt{get\_fuel\_level}, \texttt{check\_fuel\_sufficiency}, \texttt{consume\_fuel}, \texttt{refuel\_vehicle}
+\item \textbf{Reputation System}: \texttt{add\_reputation}, \texttt{get\_member\_reputation}, \texttt{gain\_reputation\_from\_race\_win}, \texttt{get\_unlocked\_content}, \texttt{\_update\_tier}
+\end{itemize}
+
+\subsection{Cross-Module Arrows}
+\begin{itemize}
+\item \texttt{CrewManagementModule.assign\_role} $\rightarrow$ \texttt{RegistrationModule.member\_exists}, \texttt{RegistrationModule.get\_member}
+\item \texttt{CrewManagementModule.get\_available\_drivers} $\rightarrow$ \texttt{RegistrationModule.get\_members\_by\_role}
+\item \texttt{RaceManagementModule.register\_participant} $\rightarrow$ \texttt{RegistrationModule.get\_member}, \texttt{InventoryModule.get\_vehicle}
+\item \texttt{ResultsModule.record\_race\_result} $\rightarrow$ \texttt{RegistrationModule.get\_member}
+\item \texttt{ResultsModule.update\_cash\_balance\_from\_race} $\rightarrow$ \texttt{InventoryModule.add\_cash}
+\item \texttt{MissionPlanningModule.check\_role\_availability} $\rightarrow$ \texttt{RegistrationModule.get\_members\_by\_role}
+\item \texttt{MissionPlanningModule.assign\_mission} $\rightarrow$ \texttt{RegistrationModule.member\_exists}, \texttt{RegistrationModule.get\_member}
+\item \texttt{MissionPlanningModule.complete\_mission} $\rightarrow$ \texttt{InventoryModule.add\_cash}
+\item \texttt{FuelManagementModule.refuel\_vehicle} $\rightarrow$ \texttt{InventoryModule.get\_vehicle}, \texttt{InventoryModule.deduct\_cash}
+\item \texttt{FuelManagementModule.get\_fuel\_level} $\rightarrow$ \texttt{InventoryModule.get\_vehicle}
+\item \texttt{ReputationSystem.add\_reputation} $\rightarrow$ \texttt{RegistrationModule.get\_member}, \texttt{ReputationSystem.\_update\_tier}
+\item \texttt{ReputationSystem.get\_reputation\_status} $\rightarrow$ \texttt{RegistrationModule.get\_member}
+\end{itemize}
+
+\subsection{Call Graph Image}
+\begin{center}
+\fbox{\rule{0pt}{3in}\rule{0.9\linewidth}{0pt}}
+
+\end{center}
+
+\section{Integration Test Design}
+The modules were initially individually tested and verified. Then, integration tests were designed to jointly test them.
+
+The integration tests were written in \texttt{pytest} and stored in \texttt{integration/tests/test\_integration.py}. The goal was to verify module interaction and data flow, not only isolated unit behaviour. Each case below states the scenario, modules involved, expected result, actual result, and why the test was needed.
+
+\renewcommand{\arraystretch}{1.2}
+\small
+\begin{longtable}{p{0.08\linewidth}p{0.24\linewidth}p{0.19\linewidth}p{0.18\linewidth}p{0.11\linewidth}p{0.14\linewidth}}
+\toprule
+\textbf{ID} & \textbf{Scenario / Why Needed} & \textbf{Modules} & \textbf{Expected Result} & \textbf{Actual Result} & \textbf{Notes} \\
+\midrule
+\endfirsthead
+\toprule
+\textbf{ID} & \textbf{Scenario / Why Needed} & \textbf{Modules} & \textbf{Expected Result} & \textbf{Actual Result} & \textbf{Notes} \\
+\midrule
+\endhead
+T1 & Assign role before registration. Needed to enforce the first business rule. & Registration, Crew Management & Error is raised. & Pass & Unregistered IDs are rejected. \\
+T2 & Register member and then assign role. Needed to confirm valid cross-module flow. & Registration, Crew Management & Role changes successfully. & Pass & Basic positive path. \\
+T3 & Request skill for missing member. Needed to ensure shared validation is applied. & Registration, Crew Management & Error is raised. & Pass & Prevents silent invalid state. \\
+T4 & List drivers after deactivating one. Needed because only active crew should be available. & Registration, Crew Management & Inactive driver excluded. & Pass after fix & Found bug: inactive members were returned. Fixed in \texttt{list\_crew\_by\_role}. \\
+T5 & Enter a mechanic into a race. Needed to enforce the driver-only racing rule. & Registration, Inventory, Race Management & Error is raised. & Pass & Non-drivers cannot race. \\
+T6 & Register a valid driver and vehicle for a race. Needed for positive race entry path. & Registration, Inventory, Race Management & Participant is added. & Pass & Stored as driver-vehicle pair. \\
+T7 & Enter an inactive driver into a race. Needed to check status flow from registration to races. & Registration, Inventory, Race Management & Error is raised. & Pass & Inactive members are blocked. \\
+T8 & Try using a damaged vehicle in a race. Needed to verify vehicle state affects race logic. & Registration, Inventory, Race Management & Error is raised. & Pass & Damaged vehicle is unavailable. \\
+T9 & Repair a damaged vehicle after adding parts. Needed to test repair workflow. & Registration, Inventory & Repair only works after required parts exist. & Pass & Vehicle returns to good condition. \\
+T10 & Check mechanic availability for repair-related mission logic. Needed to verify role availability checks. & Registration, Mission Planning & Mechanic reported unavailable. & Pass & Shows mechanic requirement is enforced. \\
+T11 & Finish a race and transfer prize money to inventory. Needed to validate results to cash flow. & Registration, Inventory, Race Management, Results & Inventory cash increases by winner prize. & Pass & Prize distribution works. \\
+T12 & Create mission without required mechanic available. Needed to enforce mission role rule. & Mission Planning, Registration & Required role reported unavailable. & Pass & Mission should not start. \\
+T13 & Create and assign mission when required role exists. Needed for positive mission path. & Registration, Mission Planning & Mission becomes active. & Pass & Crew assignment stored correctly. \\
+T14 & Assign inactive member to mission. Needed to propagate crew status into missions. & Registration, Mission Planning & Error is raised. & Pass & Inactive crew blocked. \\
+T15 & Full race workflow from registration to rankings. Needed as an end-to-end integration check. & Registration, Inventory, Race Management, Results, Fuel Management & Race starts, fuel is consumed, rankings update. & Pass & Core workflow succeeds. \\
+T16 & Full mission workflow with reward payout. Needed as an end-to-end mission integration check. & Registration, Mission Planning, Inventory & Mission completes and reward is added to cash. & Pass & Cash balance updated correctly. \\
+T17 & Award reputation after race win. Needed to connect race outcomes with progression. & Registration, Inventory, Race Management, Reputation System & Reputation points increase. & Pass & Winner gains 50 points. \\
+T18 & Unlock content at higher reputation tier. Needed to verify tier-based integration. & Registration, Reputation System & Content becomes available at threshold. & Pass & Silver unlock content observed. \\
+T19 & Drain fuel and verify race readiness fails until refuel. Needed because fuel is an added planning constraint. & Inventory, Fuel Management & Fuel becomes insufficient, then sufficient after refuel. & Pass & Fuel gating works. \\
+T20 & Refuel a car and check cash balance decreases. Needed to verify shared cash state. & Inventory, Fuel Management & Cash decreases after refuel. & Pass & Refueling charges inventory. \\
+T21 & Request fuel for unknown vehicle ID. Needed to prevent operations on missing inventory items. & Inventory, Fuel Management & Error is raised. & Pass after fix & Found bug: fuel module accepted non-existent vehicles. Fixed with vehicle validation. \\
+T22 & Register member with invalid role. Needed as an input validation edge case. & Registration & Error is raised. & Pass & Invalid role blocked. \\
+T23 & Create race with invalid race type. Needed to validate race setup input. & Race Management & Error is raised. & Pass & Invalid type rejected. \\
+T24 & Start race with one participant only. Needed to enforce minimum race size. & Registration, Inventory, Race Management & Error is raised. & Pass & Minimum of two enforced. \\
+T25 & Assign skill level above allowed range. Needed to check boundary validation. & Registration, Crew Management & Error is raised. & Pass & Skills remain bounded. \\
+T26 & Deduct more cash than available. Needed to protect shared inventory state. & Inventory & Error is raised. & Pass & Negative cash prevented. \\
+T27 & Query reputation for unknown member. Needed to stop phantom reputation records. & Registration, Reputation System & Error is raised. & Pass after fix & Found bug: reputation was created for unknown IDs. Fixed with member validation. \\
+T28 & Run two races at the same time. Needed to confirm state isolation between race objects. & Registration, Inventory, Race Management & Both races keep correct participants. & Pass & No cross-race contamination. \\
+T29 & Build leaderboard from multiple completed races. Needed to test long-term results aggregation. & Registration, Inventory, Race Management, Results & Rankings generated in points order. & Pass & Each driver ends with at least one win. \\
+\bottomrule
+\end{longtable}
+\normalsize
+
+\section{Errors Found and Fixes Applied}
+\begin{itemize}
+\item \textbf{Packaging issue in tests}: running \texttt{pytest integration/tests} from the repository root failed because Python could not find the modules in \texttt{integration/code}. This was fixed by adding \texttt{integration/tests/conftest.py} to place the code directory on the import path.
+\item \textbf{Inactive crew leak in role listings}: \texttt{CrewManagementModule.list\_crew\_by\_role()} claimed to return active crew, but previously returned inactive members too. The function was updated to filter on \texttt{is\_active}.
+\item \textbf{Fuel operations on unknown vehicles}: the fuel module previously accepted IDs that did not exist in inventory. Validation was added so fuel queries and refueling only work for real vehicles.
+\item \textbf{Phantom reputation records}: the reputation module previously created data for unknown member IDs. Validation was added so reputation can only be queried or updated for registered members.
+\end{itemize}
+
+\section{Actual Test Outcome}
+All integration tests passed after the fixes above.
+
+\begin{itemize}
+\item Command used: \texttt{python -m pytest integration/tests -q}
+\item Final result: \texttt{29 passed}
+\end{itemize}
+
+\section{Conclusion}
+The integration testing confirms that the modules do not only work individually, but also exchange data correctly. Registration controls identity and status, Crew Management controls roles and skills, Inventory acts as shared resource state, Race Management and Mission Planning enforce business rules, Results updates rankings and prize flow, and the additional Fuel and Reputation modules extend the system without breaking core interactions.
+
+\end{document}

@@ -200,21 +200,21 @@ Registration ←→ Crew Management
 
 ## Business Rules Implemented
 
-1. ✅ **Crew members must be registered before role assignment**
+1. **Crew members must be registered before role assignment**
    - `CrewManagementModule.assign_role()` validates registration first
 
-2. ✅ **Only crew members with driver role may race**
+2. **Only crew members with driver role may race**
    - `RaceManagementModule.register_participant()` checks role == DRIVER
 
-3. ✅ **Damaged vehicles cannot race, need mechanic for repairs**
+3. **Damaged vehicles cannot race, need mechanic for repairs**
    - `InventoryModule.damage_vehicle()` marks unavailable
    - `InventoryModule.repair_vehicle()` requires spare parts and mechanic availability
 
-4. ✅ **Race results update inventory cash**
+4. **Race results update inventory cash**
    - `ResultsModule.record_race_result()` calculates prizes
    - `ResultsModule.update_cash_balance_from_race()` adds prize to inventory
 
-5. ✅ **Missions cannot start if required roles unavailable**
+5. **Missions cannot start if required roles unavailable**
    - `MissionPlanningModule.check_roles_availability()` verifies before assignment
    - `MissionPlanningModule.assign_mission()` validates all roles are assigned
 
