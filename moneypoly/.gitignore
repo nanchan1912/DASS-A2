@@ -1,0 +1,18 @@
+# OS files
+.DS_Store
+
+# Python cache and environments
+__pycache__/
+*.py[cod]
+*.pyo
+*.pyd
+.venv/
+venv/
+
+# Test and lint outputs
+.pytest_cache/
+.coverage
+htmlcov/
+pylint-debug.txt
+pylint-*.txt
+pylint-*.json

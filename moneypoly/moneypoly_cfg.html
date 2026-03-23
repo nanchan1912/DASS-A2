@@ -1,0 +1,999 @@
+
+<!DOCTYPE html>
+<html>
+<head>
+<style>
+* { box-sizing: border-box; margin: 0; padding: 0; }
+body { font-family: var(--font-mono, monospace); background: transparent; color: var(--color-text-primary); }
+
+.cfg-wrap { width: 100%; overflow-x: auto; padding: 8px 0 16px; }
+
+.section-label {
+  font-size: 11px;
+  font-weight: 500;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  padding: 4px 10px;
+  border-radius: 4px;
+  margin: 18px 0 4px 0;
+  display: inline-block;
+}
+
+svg.cfg { width: 100%; display: block; }
+
+/* node colors */
+.n-entry   { fill: #2C2C2A; stroke: #444441; }
+.n-exit    { fill: #2C2C2A; stroke: #444441; }
+.n-proc    { fill: #E6F1FB; stroke: #378ADD; }
+.n-decision{ fill: #FAEEDA; stroke: #BA7517; }
+.n-return  { fill: #EAF3DE; stroke: #3B6D11; }
+.n-error   { fill: #FCEBEB; stroke: #E24B4A; }
+.n-loop    { fill: #EEEDFE; stroke: #7F77DD; }
+.n-io      { fill: #E1F5EE; stroke: #1D9E75; }
+
+.n-entry text, .n-exit text { fill: #F1EFE8; }
+.n-proc text   { fill: #0C447C; }
+.n-decision text{ fill: #633806; }
+.n-return text { fill: #27500A; }
+.n-error text  { fill: #791F1F; }
+.n-loop text   { fill: #3C3489; }
+.n-io text     { fill: #085041; }
+
+@media (prefers-color-scheme: dark) {
+  .n-proc    { fill: #0C447C; stroke: #85B7EB; }
+  .n-decision{ fill: #633806; stroke: #FAC775; }
+  .n-return  { fill: #27500A; stroke: #97C459; }
+  .n-error   { fill: #791F1F; stroke: #F09595; }
+  .n-loop    { fill: #3C3489; stroke: #AFA9EC; }
+  .n-io      { fill: #085041; stroke: #5DCAA5; }
+  .n-proc text   { fill: #B5D4F4; }
+  .n-decision text{ fill: #FAC775; }
+  .n-return text { fill: #C0DD97; }
+  .n-error text  { fill: #F7C1C1; }
+  .n-loop text   { fill: #CECBF6; }
+  .n-io text     { fill: #9FE1CB; }
+}
+
+.arr { stroke: var(--color-text-secondary); stroke-width: 1.2; fill: none; }
+.arr-yes { stroke: #3B6D11; stroke-width: 1.2; fill: none; }
+.arr-no  { stroke: #791F1F; stroke-width: 1.2; fill: none; }
+.arr-loop { stroke: #7F77DD; stroke-width: 1.2; fill: none; stroke-dasharray: 4 3; }
+
+.sec-bg { fill: none; stroke-width: 1; stroke-dasharray: 4 3; rx: 10; }
+.sec-bg-main   { stroke: #378ADD; }
+.sec-bg-player { stroke: #1D9E75; }
+.sec-bg-dice   { stroke: #7F77DD; }
+.sec-bg-prop   { stroke: #BA7517; }
+.sec-bg-cards  { stroke: #E24B4A; }
+.sec-bg-bank   { stroke: #639922; }
+.sec-bg-board  { stroke: #D85A30; }
+.sec-bg-ui     { stroke: #3C3489; }
+
+.sec-title { font-size: 11px; font-weight: 500; letter-spacing: 0.06em; }
+.sec-title-main   { fill: #185FA5; }
+.sec-title-player { fill: #0F6E56; }
+.sec-title-dice   { fill: #534AB7; }
+.sec-title-prop   { fill: #854F0B; }
+.sec-title-cards  { fill: #A32D2D; }
+.sec-title-bank   { fill: #3B6D11; }
+.sec-title-board  { fill: #993C1D; }
+.sec-title-ui     { fill: #3C3489; }
+
+@media (prefers-color-scheme: dark) {
+  .sec-title-main   { fill: #85B7EB; }
+  .sec-title-player { fill: #5DCAA5; }
+  .sec-title-dice   { fill: #AFA9EC; }
+  .sec-title-prop   { fill: #FAC775; }
+  .sec-title-cards  { fill: #F09595; }
+  .sec-title-bank   { fill: #97C459; }
+  .sec-title-board  { fill: #F0997B; }
+  .sec-title-ui     { fill: #AFA9EC; }
+}
+
+text.lbl { font-size: 10px; fill: var(--color-text-secondary); }
+text.edge-lbl { font-size: 9px; font-style: italic; }
+text.edge-yes { fill: #3B6D11; font-size: 9px; font-style: italic; }
+text.edge-no  { fill: #A32D2D; font-size: 9px; font-style: italic; }
+
+.node-title { font-size: 12px; font-weight: 500; }
+.node-sub   { font-size: 10px; }
+</style>
+</head>
+<body>
+<div class="cfg-wrap">
+<svg class="cfg" viewBox="0 0 1400 5200" xmlns="http://www.w3.org/2000/svg">
+<defs>
+  <marker id="arr"    viewBox="0 0 10 10" refX="8" refY="5" markerWidth="5" markerHeight="5" orient="auto-start-reverse"><path d="M2 1L8 5L2 9" fill="none" stroke="var(--color-text-secondary)" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/></marker>
+  <marker id="arr-y"  viewBox="0 0 10 10" refX="8" refY="5" markerWidth="5" markerHeight="5" orient="auto-start-reverse"><path d="M2 1L8 5L2 9" fill="none" stroke="#3B6D11" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/></marker>
+  <marker id="arr-n"  viewBox="0 0 10 10" refX="8" refY="5" markerWidth="5" markerHeight="5" orient="auto-start-reverse"><path d="M2 1L8 5L2 9" fill="none" stroke="#A32D2D" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/></marker>
+  <marker id="arr-lp" viewBox="0 0 10 10" refX="8" refY="5" markerWidth="5" markerHeight="5" orient="auto-start-reverse"><path d="M2 1L8 5L2 9" fill="none" stroke="#7F77DD" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/></marker>
+</defs>
+
+<!-- ═══════════════════════════════════════════════════════════════ -->
+<!--  LEGEND -->
+<!-- ═══════════════════════════════════════════════════════════════ -->
+<rect x="10" y="10" width="680" height="54" rx="6" class="sec-bg sec-bg-main"/>
+<text x="20" y="26" class="sec-title sec-title-main">LEGEND</text>
+<g class="n-entry"><rect x="20" y="32" width="80" height="24" rx="4"/><text x="60" y="44" text-anchor="middle" dominant-baseline="central" class="node-title">START/END</text></g>
+<g class="n-proc"><rect x="112" y="32" width="80" height="24" rx="4"/><text x="152" y="44" text-anchor="middle" dominant-baseline="central" class="node-title">Process</text></g>
+<g class="n-decision"><rect x="204" y="32" width="80" height="24" rx="4"/><text x="244" y="44" text-anchor="middle" dominant-baseline="central" class="node-title">Decision</text></g>
+<g class="n-loop"><rect x="296" y="32" width="80" height="24" rx="4"/><text x="336" y="44" text-anchor="middle" dominant-baseline="central" class="node-title">Loop</text></g>
+<g class="n-return"><rect x="388" y="32" width="80" height="24" rx="4"/><text x="428" y="44" text-anchor="middle" dominant-baseline="central" class="node-title">Return</text></g>
+<g class="n-io"><rect x="480" y="32" width="80" height="24" rx="4"/><text x="520" y="44" text-anchor="middle" dominant-baseline="central" class="node-title">I/O</text></g>
+<g class="n-error"><rect x="572" y="32" width="80" height="24" rx="4"/><text x="612" y="44" text-anchor="middle" dominant-baseline="central" class="node-title">Error/Raise</text></g>
+
+<!-- ═══════════════════════════════════════════════════════════════ -->
+<!--  SECTION: main.py -->
+<!-- ═══════════════════════════════════════════════════════════════ -->
+<rect x="10" y="80" width="680" height="330" rx="8" class="sec-bg sec-bg-main"/>
+<text x="22" y="98" class="sec-title sec-title-main">main.py</text>
+
+<!-- START -->
+<g class="n-entry"><rect x="270" y="108" width="120" height="32" rx="6"/><text x="330" y="124" text-anchor="middle" dominant-baseline="central" class="node-title">START</text></g>
+<line x1="330" y1="140" x2="330" y2="158" class="arr" marker-end="url(#arr)"/>
+
+<!-- get_player_names -->
+<g class="n-io"><rect x="200" y="158" width="260" height="44" rx="4"/><text x="330" y="174" text-anchor="middle" dominant-baseline="central" class="node-title">get_player_names()</text><text x="330" y="191" text-anchor="middle" dominant-baseline="central" class="node-sub">prompt input → split by comma → return list</text></g>
+<line x1="330" y1="202" x2="330" y2="220" class="arr" marker-end="url(#arr)"/>
+
+<!-- ValueError? -->
+<g class="n-decision"><rect x="200" y="220" width="260" height="36" rx="4"/><text x="330" y="238" text-anchor="middle" dominant-baseline="central" class="node-title">ValueError during setup/run?</text></g>
+<line x1="460" y1="238" x2="540" y2="238" class="arr-no" marker-end="url(#arr-n)"/>
+<text x="466" y="234" class="edge-no">yes → ValueError</text>
+<g class="n-error"><rect x="540" y="222" width="130" height="32" rx="4"/><text x="605" y="238" text-anchor="middle" dominant-baseline="central" class="node-title">print error; exit</text></g>
+
+<line x1="330" y1="256" x2="330" y2="274" class="arr-y" marker-end="url(#arr-y)"/>
+<text x="336" y="270" class="edge-yes">no</text>
+
+<!-- Game.__init__ -->
+<g class="n-proc"><rect x="180" y="274" width="300" height="44" rx="4"/><text x="330" y="290" text-anchor="middle" dominant-baseline="central" class="node-title">Game.__init__(player_names)</text><text x="330" y="307" text-anchor="middle" dominant-baseline="central" class="node-sub">Board, Bank, Dice, Players, Decks created</text></g>
+<line x1="330" y1="318" x2="330" y2="336" class="arr" marker-end="url(#arr)"/>
+
+<!-- try/except wrap -->
+<g class="n-proc"><rect x="180" y="336" width="300" height="32" rx="4"/><text x="330" y="352" text-anchor="middle" dominant-baseline="central" class="node-title">game.run()  [try block]</text></g>
+<line x1="480" y1="352" x2="540" y2="352" class="arr-no" marker-end="url(#arr-n)"/>
+<text x="482" y="348" class="edge-no">KeyboardInterrupt</text>
+<g class="n-error"><rect x="540" y="336" width="140" height="32" rx="4"/><text x="610" y="352" text-anchor="middle" dominant-baseline="central" class="node-title">print "Goodbye!"</text></g>
+
+<line x1="330" y1="368" x2="330" y2="390" class="arr" marker-end="url(#arr)"/>
+<g class="n-entry"><rect x="270" y="390" width="120" height="28" rx="6"/><text x="330" y="404" text-anchor="middle" dominant-baseline="central" class="node-title">END</text></g>
+
+
+<!-- ═══════════════════════════════════════════════════════════════ -->
+<!--  SECTION: game.py — run() -->
+<!-- ═══════════════════════════════════════════════════════════════ -->
+<rect x="10" y="430" width="680" height="260" rx="8" class="sec-bg sec-bg-main"/>
+<text x="22" y="448" class="sec-title sec-title-main">game.py — Game.run()</text>
+
+<g class="n-proc"><rect x="180" y="458" width="300" height="44" rx="4"/><text x="330" y="474" text-anchor="middle" dominant-baseline="central" class="node-title">print_banner() + list players</text><text x="330" y="491" text-anchor="middle" dominant-baseline="central" class="node-sub">Welcome message, starting balances</text></g>
+<line x1="330" y1="502" x2="330" y2="520" class="arr" marker-end="url(#arr)"/>
+
+<g class="n-loop"><rect x="150" y="520" width="360" height="44" rx="4"/><text x="330" y="536" text-anchor="middle" dominant-baseline="central" class="node-title">WHILE: running AND turn &lt; MAX_TURNS</text><text x="330" y="553" text-anchor="middle" dominant-baseline="central" class="node-sub">inside loop: if len(players) &lt;= 1 then break</text></g>
+<line x1="510" y1="542" x2="580" y2="542" class="arr-no" marker-end="url(#arr-n)"/>
+<text x="512" y="537" class="edge-no">exit loop</text>
+<line x1="580" y1="542" x2="580" y2="648" class="arr-no" marker-end="url(#arr-n)"/>
+
+<line x1="330" y1="564" x2="330" y2="582" class="arr-y" marker-end="url(#arr-y)"/>
+<text x="336" y="578" class="edge-yes">continue</text>
+<g class="n-proc"><rect x="200" y="582" width="260" height="32" rx="4"/><text x="330" y="598" text-anchor="middle" dominant-baseline="central" class="node-title">play_turn() → print_standings()</text></g>
+
+<!-- loop back -->
+<line x1="200" y1="598" x2="140" y2="598" class="arr-lp" marker-end="url(#arr-lp)"/>
+<line x1="140" y1="598" x2="140" y2="542" class="arr-lp"/>
+<line x1="140" y1="542" x2="150" y2="542" class="arr-lp" marker-end="url(#arr-lp)"/>
+
+<line x1="580" y1="648" x2="330" y2="648" class="arr" marker-end="url(#arr)"/>
+<g class="n-decision"><rect x="165" y="648" width="330" height="32" rx="4"/><text x="330" y="664" text-anchor="middle" dominant-baseline="central" class="node-title">find_winner(): players empty?</text></g>
+<line x1="330" y1="680" x2="330" y2="698" class="arr" marker-end="url(#arr)"/>
+<g class="n-proc"><rect x="165" y="698" width="330" height="32" rx="4" class="n-io"/><text x="330" y="714" text-anchor="middle" dominant-baseline="central" class="node-title">print GAME OVER + winner name + net worth</text></g>
+<line x1="165" y1="664" x2="80" y2="664" class="arr-no" marker-end="url(#arr-n)"/>
+<text x="84" y="660" class="edge-no">empty</text>
+<g class="n-io"><rect x="20" y="648" width="60" height="32" rx="4"/><text x="50" y="664" text-anchor="middle" dominant-baseline="central" class="node-title">print none</text></g>
+
+
+<!-- ═══════════════════════════════════════════════════════════════ -->
+<!--  SECTION: game.py — play_turn() -->
+<!-- ═══════════════════════════════════════════════════════════════ -->
+<rect x="10" y="710" width="680" height="500" rx="8" class="sec-bg sec-bg-main"/>
+<text x="22" y="728" class="sec-title sec-title-main">game.py — play_turn()</text>
+
+<g class="n-proc"><rect x="185" y="738" width="310" height="32" rx="4"/><text x="340" y="754" text-anchor="middle" dominant-baseline="central" class="node-title">print_banner(turn, player name, balance)</text></g>
+<line x1="340" y1="770" x2="340" y2="788" class="arr" marker-end="url(#arr)"/>
+
+<g class="n-decision"><rect x="185" y="788" width="310" height="32" rx="4"/><text x="340" y="804" text-anchor="middle" dominant-baseline="central" class="node-title">player.in_jail?</text></g>
+<line x1="495" y1="804" x2="570" y2="804" class="arr-y" marker-end="url(#arr-y)"/>
+<text x="498" y="799" class="edge-yes">yes</text>
+<g class="n-proc"><rect x="570" y="788" width="100" height="32" rx="4"/><text x="620" y="804" text-anchor="middle" dominant-baseline="central" class="node-title">_handle_jail_turn()</text></g>
+<line x1="620" y1="820" x2="620" y2="844" class="arr" marker-end="url(#arr)"/>
+<g class="n-return"><rect x="570" y="844" width="100" height="28" rx="4"/><text x="620" y="858" text-anchor="middle" dominant-baseline="central" class="node-title">advance_turn(); return</text></g>
+
+<line x1="340" y1="820" x2="340" y2="838" class="arr-no" marker-end="url(#arr-n)"/>
+<text x="346" y="834" class="edge-no">no</text>
+
+<g class="n-proc"><rect x="185" y="838" width="310" height="32" rx="4"/><text x="340" y="854" text-anchor="middle" dominant-baseline="central" class="node-title">dice.roll() → print describe()</text></g>
+<line x1="340" y1="870" x2="340" y2="888" class="arr" marker-end="url(#arr)"/>
+
+<g class="n-decision"><rect x="165" y="888" width="350" height="32" rx="4"/><text x="340" y="904" text-anchor="middle" dominant-baseline="central" class="node-title">doubles_streak ≥ 3?</text></g>
+<line x1="515" y1="904" x2="570" y2="904" class="arr-y" marker-end="url(#arr-y)"/>
+<text x="517" y="899" class="edge-yes">yes</text>
+<g class="n-proc"><rect x="570" y="888" width="100" height="32" rx="4"/><text x="620" y="904" text-anchor="middle" dominant-baseline="central" class="node-title">player.go_to_jail()</text></g>
+<line x1="620" y1="920" x2="620" y2="944" class="arr" marker-end="url(#arr)"/>
+<g class="n-return"><rect x="570" y="944" width="100" height="28" rx="4"/><text x="620" y="958" text-anchor="middle" dominant-baseline="central" class="node-title">advance_turn(); return</text></g>
+
+<line x1="340" y1="920" x2="340" y2="938" class="arr-no" marker-end="url(#arr-n)"/>
+<text x="346" y="934" class="edge-no">no</text>
+
+<g class="n-proc"><rect x="165" y="938" width="350" height="32" rx="4"/><text x="340" y="954" text-anchor="middle" dominant-baseline="central" class="node-title">_move_and_resolve(player, roll)</text></g>
+<line x1="340" y1="970" x2="340" y2="988" class="arr" marker-end="url(#arr)"/>
+
+<g class="n-decision"><rect x="165" y="988" width="350" height="32" rx="4"/><text x="340" y="1004" text-anchor="middle" dominant-baseline="central" class="node-title">dice.is_doubles()?</text></g>
+<line x1="515" y1="1004" x2="570" y2="1004" class="arr-y" marker-end="url(#arr-y)"/>
+<text x="517" y="999" class="edge-yes">yes</text>
+<g class="n-return"><rect x="570" y="988" width="100" height="32" rx="4"/><text x="620" y="1004" text-anchor="middle" dominant-baseline="central" class="node-title">return (extra turn, no advance)</text></g>
+
+<line x1="340" y1="1020" x2="340" y2="1038" class="arr-no" marker-end="url(#arr-n)"/>
+<text x="346" y="1034" class="edge-no">no</text>
+<g class="n-proc"><rect x="200" y="1038" width="280" height="32" rx="4"/><text x="340" y="1054" text-anchor="middle" dominant-baseline="central" class="node-title">advance_turn()</text></g>
+<line x1="340" y1="1070" x2="340" y2="1088" class="arr" marker-end="url(#arr)"/>
+<g class="n-return"><rect x="230" y="1088" width="220" height="28" rx="4"/><text x="340" y="1102" text-anchor="middle" dominant-baseline="central" class="node-title">return</text></g>
+
+
+<!-- ═══════════════════════════════════════════════════════════════ -->
+<!--  SECTION: game.py — _move_and_resolve() -->
+<!-- ═══════════════════════════════════════════════════════════════ -->
+<rect x="10" y="1240" width="680" height="420" rx="8" class="sec-bg sec-bg-main"/>
+<text x="22" y="1258" class="sec-title sec-title-main">game.py — _move_and_resolve(player, steps)</text>
+
+<g class="n-proc"><rect x="185" y="1268" width="310" height="44" rx="4"/><text x="340" y="1284" text-anchor="middle" dominant-baseline="central" class="node-title">player.move(steps)</text><text x="340" y="1301" text-anchor="middle" dominant-baseline="central" class="node-sub">position updated, Go salary if landed on 0</text></g>
+<line x1="340" y1="1312" x2="340" y2="1330" class="arr" marker-end="url(#arr)"/>
+
+<g class="n-proc"><rect x="185" y="1330" width="310" height="32" rx="4"/><text x="340" y="1346" text-anchor="middle" dominant-baseline="central" class="node-title">board.get_tile_type(position)</text></g>
+<line x1="340" y1="1362" x2="340" y2="1380" class="arr" marker-end="url(#arr)"/>
+
+<!-- tile switch -->
+<g class="n-decision"><rect x="185" y="1380" width="310" height="32" rx="4"/><text x="340" y="1396" text-anchor="middle" dominant-baseline="central" class="node-title">tile type?</text></g>
+
+<!-- branches -->
+<line x1="220" y1="1412" x2="80" y2="1440" class="arr" marker-end="url(#arr)"/>
+<g class="n-proc"><rect x="20" y="1440" width="120" height="44" rx="4"/><text x="80" y="1456" text-anchor="middle" dominant-baseline="central" class="node-title">go_to_jail</text><text x="80" y="1473" text-anchor="middle" dominant-baseline="central" class="node-sub">player.go_to_jail()</text></g>
+
+<line x1="285" y1="1412" x2="210" y2="1440" class="arr" marker-end="url(#arr)"/>
+<g class="n-proc"><rect x="152" y="1440" width="115" height="44" rx="4"/><text x="210" y="1456" text-anchor="middle" dominant-baseline="central" class="node-title">income_tax</text><text x="210" y="1473" text-anchor="middle" dominant-baseline="central" class="node-sub">deduct $200</text></g>
+
+<line x1="340" y1="1412" x2="340" y2="1440" class="arr" marker-end="url(#arr)"/>
+<g class="n-proc"><rect x="276" y="1440" width="128" height="44" rx="4"/><text x="340" y="1456" text-anchor="middle" dominant-baseline="central" class="node-title">luxury_tax</text><text x="340" y="1473" text-anchor="middle" dominant-baseline="central" class="node-sub">deduct $75</text></g>
+
+<line x1="395" y1="1412" x2="470" y2="1440" class="arr" marker-end="url(#arr)"/>
+<g class="n-proc"><rect x="410" y="1440" width="120" height="44" rx="4"/><text x="470" y="1456" text-anchor="middle" dominant-baseline="central" class="node-title">chance /</text><text x="470" y="1473" text-anchor="middle" dominant-baseline="central" class="node-sub">community_chest</text></g>
+<text x="350" y="1432" class="lbl">draw → _apply_card()</text>
+
+<line x1="460" y1="1412" x2="590" y2="1440" class="arr" marker-end="url(#arr)"/>
+<g class="n-proc"><rect x="540" y="1440" width="130" height="44" rx="4"/><text x="605" y="1456" text-anchor="middle" dominant-baseline="central" class="node-title">property /</text><text x="605" y="1473" text-anchor="middle" dominant-baseline="central" class="node-sub">railroad</text></g>
+<text x="492" y="1432" class="lbl">→_handle_property_tile()</text>
+
+<line x1="340" y1="1436" x2="340" y2="1560" class="arr" marker-end="url(#arr)"/>
+<text x="236" y="1432" class="lbl">free_parking / go / jail / blank → print only</text>
+
+<!-- converge -->
+<line x1="80" y1="1484" x2="80" y2="1560" class="arr"/>
+<line x1="210" y1="1484" x2="210" y2="1560" class="arr"/>
+<line x1="470" y1="1484" x2="470" y2="1560" class="arr"/>
+<line x1="605" y1="1484" x2="605" y2="1560" class="arr"/>
+<line x1="80" y1="1560" x2="605" y2="1560" class="arr"/>
+<line x1="340" y1="1560" x2="340" y2="1580" class="arr" marker-end="url(#arr)"/>
+
+<g class="n-proc"><rect x="165" y="1580" width="350" height="32" rx="4"/><text x="340" y="1596" text-anchor="middle" dominant-baseline="central" class="node-title">_check_bankruptcy(player)</text></g>
+<line x1="340" y1="1612" x2="340" y2="1630" class="arr" marker-end="url(#arr)"/>
+<g class="n-return"><rect x="230" y="1630" width="220" height="28" rx="4"/><text x="340" y="1644" text-anchor="middle" dominant-baseline="central" class="node-title">return</text></g>
+
+
+<!-- ═══════════════════════════════════════════════════════════════ -->
+<!--  SECTION: game.py — _handle_property_tile() -->
+<!-- ═══════════════════════════════════════════════════════════════ -->
+<rect x="10" y="1690" width="680" height="310" rx="8" class="sec-bg sec-bg-main"/>
+<text x="22" y="1708" class="sec-title sec-title-main">game.py — _handle_property_tile(player, prop)</text>
+
+<g class="n-decision"><rect x="165" y="1718" width="350" height="32" rx="4"/><text x="340" y="1734" text-anchor="middle" dominant-baseline="central" class="node-title">prop.owner is None?</text></g>
+
+<line x1="340" y1="1750" x2="340" y2="1768" class="arr-y" marker-end="url(#arr-y)"/>
+<text x="346" y="1764" class="edge-yes">yes</text>
+<g class="n-io"><rect x="185" y="1768" width="310" height="32" rx="4"/><text x="340" y="1784" text-anchor="middle" dominant-baseline="central" class="node-title">input: Buy (b) / Auction (a) / Skip (s)?</text></g>
+<line x1="280" y1="1800" x2="120" y2="1830" class="arr" marker-end="url(#arr)"/>
+<line x1="340" y1="1800" x2="340" y2="1830" class="arr" marker-end="url(#arr)"/>
+<line x1="400" y1="1800" x2="540" y2="1830" class="arr" marker-end="url(#arr)"/>
+<text x="60"  y="1822" class="lbl">"b"</text>
+<text x="316" y="1822" class="lbl">"a"</text>
+<text x="480" y="1822" class="lbl">"s"</text>
+<g class="n-proc"><rect x="20"  y="1830" width="180" height="32" rx="4"/><text x="110" y="1846" text-anchor="middle" dominant-baseline="central" class="node-title">buy_property(player, prop)</text></g>
+<g class="n-proc"><rect x="215" y="1830" width="250" height="32" rx="4"/><text x="340" y="1846" text-anchor="middle" dominant-baseline="central" class="node-title">auction_property(prop)</text></g>
+<g class="n-proc"><rect x="480" y="1830" width="180" height="32" rx="4"/><text x="570" y="1846" text-anchor="middle" dominant-baseline="central" class="node-title">print "passes"</text></g>
+
+<!-- owner == player branch -->
+<line x1="165" y1="1734" x2="60" y2="1734" class="arr-no" marker-end="url(#arr-n)"/>
+<text x="64" y="1730" class="edge-no">owner=player</text>
+<g class="n-proc"><rect x="20" y="1900" width="160" height="32" rx="4"/><text x="100" y="1916" text-anchor="middle" dominant-baseline="central" class="node-title">print "owns it, no rent"</text></g>
+<line x1="60" y1="1734" x2="60" y2="1916" class="arr" marker-end="url(#arr)"/>
+
+<!-- owner == other branch -->
+<line x1="515" y1="1734" x2="620" y2="1734" class="arr-no" marker-end="url(#arr-n)"/>
+<text x="520" y="1730" class="edge-no">owner=other</text>
+<g class="n-proc"><rect x="540" y="1900" width="140" height="32" rx="4"/><text x="610" y="1916" text-anchor="middle" dominant-baseline="central" class="node-title">pay_rent(player, prop)</text></g>
+<line x1="620" y1="1734" x2="620" y2="1916" class="arr" marker-end="url(#arr)"/>
+
+<!-- converge to return -->
+<line x1="110" y1="1862" x2="110" y2="1960" class="arr"/>
+<line x1="340" y1="1862" x2="340" y2="1960" class="arr"/>
+<line x1="570" y1="1862" x2="570" y2="1960" class="arr"/>
+<line x1="100" y1="1932" x2="100" y2="1960" class="arr"/>
+<line x1="610" y1="1932" x2="610" y2="1960" class="arr"/>
+<line x1="100" y1="1960" x2="610" y2="1960" class="arr"/>
+<line x1="340" y1="1960" x2="340" y2="1978" class="arr" marker-end="url(#arr)"/>
+<g class="n-return"><rect x="250" y="1978" width="180" height="24" rx="4"/><text x="340" y="1990" text-anchor="middle" dominant-baseline="central" class="node-title">return</text></g>
+
+
+<!-- ═══════════════════════════════════════════════════════════════ -->
+<!--  SECTION: game.py — buy_property(), pay_rent() -->
+<!-- ═══════════════════════════════════════════════════════════════ -->
+<rect x="10" y="2020" width="680" height="390" rx="8" class="sec-bg sec-bg-main"/>
+<text x="22" y="2038" class="sec-title sec-title-main">game.py — buy_property()  /  pay_rent()</text>
+
+<!-- buy_property -->
+<g class="n-decision"><rect x="30" y="2048" width="290" height="32" rx="4"/><text x="175" y="2064" text-anchor="middle" dominant-baseline="central" class="node-title">buy_property: balance ≤ price?</text></g>
+<line x1="175" y1="2080" x2="175" y2="2098" class="arr-y" marker-end="url(#arr-y)"/>
+<text x="181" y="2094" class="edge-yes">yes</text>
+<g class="n-io"><rect x="70" y="2098" width="210" height="32" rx="4"/><text x="175" y="2114" text-anchor="middle" dominant-baseline="central" class="node-title">print "cannot afford"</text></g>
+<line x1="175" y1="2130" x2="175" y2="2148" class="arr" marker-end="url(#arr)"/>
+<g class="n-return"><rect x="80" y="2148" width="190" height="28" rx="4"/><text x="175" y="2162" text-anchor="middle" dominant-baseline="central" class="node-title">return False</text></g>
+
+<line x1="30" y1="2064" x2="20" y2="2064" class="arr-no" marker-end="url(#arr-n)"/>
+<text x="22" y="2060" class="edge-no">no</text>
+<line x1="20" y1="2064" x2="20" y2="2230" class="arr-no"/>
+<g class="n-proc"><rect x="30" y="2230" width="290" height="44" rx="4"/><text x="175" y="2246" text-anchor="middle" dominant-baseline="central" class="node-title">deduct price; prop.owner = player</text><text x="175" y="2263" text-anchor="middle" dominant-baseline="central" class="node-sub">player.add_property(); bank.collect()</text></g>
+<line x1="20" y1="2230" x2="30" y2="2252" class="arr-no" marker-end="url(#arr-n)"/>
+<line x1="175" y1="2274" x2="175" y2="2292" class="arr" marker-end="url(#arr)"/>
+<g class="n-return"><rect x="80" y="2292" width="190" height="28" rx="4"/><text x="175" y="2306" text-anchor="middle" dominant-baseline="central" class="node-title">return True</text></g>
+
+<!-- pay_rent -->
+<g class="n-decision"><rect x="370" y="2048" width="290" height="32" rx="4"/><text x="515" y="2064" text-anchor="middle" dominant-baseline="central" class="node-title">pay_rent: is_mortgaged?</text></g>
+<line x1="515" y1="2080" x2="515" y2="2098" class="arr-y" marker-end="url(#arr-y)"/>
+<text x="521" y="2094" class="edge-yes">yes</text>
+<g class="n-io"><rect x="430" y="2098" width="170" height="28" rx="4"/><text x="515" y="2112" text-anchor="middle" dominant-baseline="central" class="node-title">print "mortgaged, no rent"</text></g>
+<line x1="515" y1="2126" x2="515" y2="2144" class="arr" marker-end="url(#arr)"/>
+<g class="n-return"><rect x="440" y="2144" width="150" height="28" rx="4"/><text x="515" y="2158" text-anchor="middle" dominant-baseline="central" class="node-title">return</text></g>
+
+<line x1="370" y1="2064" x2="360" y2="2064" class="arr-no" marker-end="url(#arr-n)"/>
+<line x1="360" y1="2064" x2="360" y2="2190" class="arr-no"/>
+<g class="n-decision"><rect x="370" y="2190" width="290" height="32" rx="4"/><text x="515" y="2206" text-anchor="middle" dominant-baseline="central" class="node-title">prop.owner is None?</text></g>
+<line x1="660" y1="2206" x2="670" y2="2206" class="arr-y" marker-end="url(#arr-y)"/>
+<text x="662" y="2202" class="edge-yes">yes</text>
+<g class="n-return"><rect x="640" y="2244" width="50" height="28" rx="4"/><text x="665" y="2258" text-anchor="middle" dominant-baseline="central" class="node-title">return</text></g>
+<line x1="670" y1="2206" x2="670" y2="2258" class="arr" marker-end="url(#arr)"/>
+<line x1="360" y1="2190" x2="370" y2="2206" class="arr-no" marker-end="url(#arr-n)"/>
+<line x1="515" y1="2222" x2="515" y2="2240" class="arr-no" marker-end="url(#arr-n)"/>
+<text x="521" y="2236" class="edge-no">no</text>
+<g class="n-proc"><rect x="370" y="2240" width="260" height="44" rx="4"/><text x="500" y="2256" text-anchor="middle" dominant-baseline="central" class="node-title">prop.get_rent() → deduct rent</text><text x="500" y="2273" text-anchor="middle" dominant-baseline="central" class="node-sub">print rent paid to owner</text></g>
+<line x1="500" y1="2284" x2="500" y2="2302" class="arr" marker-end="url(#arr)"/>
+<g class="n-return"><rect x="420" y="2302" width="160" height="28" rx="4"/><text x="500" y="2316" text-anchor="middle" dominant-baseline="central" class="node-title">return</text></g>
+
+<!-- ═══════════════════════════════════════════════════════════════ -->
+<!--  SECTION: game.py — mortgage_property(), unmortgage_property() -->
+<!-- ═══════════════════════════════════════════════════════════════ -->
+<rect x="10" y="2430" width="680" height="360" rx="8" class="sec-bg sec-bg-main"/>
+<text x="22" y="2448" class="sec-title sec-title-main">game.py — mortgage_property()  /  unmortgage_property()</text>
+
+<!-- mortgage_property -->
+<g class="n-decision"><rect x="20" y="2458" width="290" height="32" rx="4"/><text x="165" y="2474" text-anchor="middle" dominant-baseline="central" class="node-title">mortgage_property: owner ≠ player?</text></g>
+<line x1="165" y1="2490" x2="165" y2="2508" class="arr-y" marker-end="url(#arr-y)"/>
+<text x="171" y="2504" class="edge-yes">yes</text>
+<g class="n-return"><rect x="80" y="2508" width="170" height="28" rx="4"/><text x="165" y="2522" text-anchor="middle" dominant-baseline="central" class="node-title">print error; return False</text></g>
+
+<line x1="20" y1="2474" x2="10" y2="2474" class="arr-no"/>
+<line x1="10" y1="2474" x2="10" y2="2560" class="arr-no"/>
+<line x1="10" y1="2560" x2="20" y2="2560" class="arr-no" marker-end="url(#arr-n)"/>
+<g class="n-proc"><rect x="20" y="2560" width="290" height="32" rx="4"/><text x="165" y="2576" text-anchor="middle" dominant-baseline="central" class="node-title">prop.mortgage() → payout</text></g>
+<line x1="165" y1="2592" x2="165" y2="2610" class="arr" marker-end="url(#arr)"/>
+<g class="n-decision"><rect x="20" y="2610" width="290" height="32" rx="4"/><text x="165" y="2626" text-anchor="middle" dominant-baseline="central" class="node-title">payout == 0? (already mortgaged)</text></g>
+<line x1="165" y1="2642" x2="165" y2="2660" class="arr-no" marker-end="url(#arr-n)"/>
+<text x="171" y="2656" class="edge-no">no</text>
+<g class="n-proc"><rect x="20" y="2660" width="290" height="44" rx="4"/><text x="165" y="2676" text-anchor="middle" dominant-baseline="central" class="node-title">player.add_money(payout)</text><text x="165" y="2693" text-anchor="middle" dominant-baseline="central" class="node-sub">bank.collect(-payout); print; return True</text></g>
+<line x1="310" y1="2626" x2="320" y2="2626" class="arr-y" marker-end="url(#arr-y)"/>
+<text x="313" y="2622" class="edge-yes">yes</text>
+<g class="n-return"><rect x="320" y="2610" width="30" height="32" rx="4"/><text x="335" y="2626" text-anchor="middle" dominant-baseline="central" class="node-title">→F</text></g>
+
+<!-- unmortgage_property -->
+<g class="n-decision"><rect x="370" y="2458" width="290" height="32" rx="4"/><text x="515" y="2474" text-anchor="middle" dominant-baseline="central" class="node-title">unmortgage: owner ≠ player?</text></g>
+<line x1="515" y1="2490" x2="515" y2="2508" class="arr-y" marker-end="url(#arr-y)"/>
+<g class="n-return"><rect x="430" y="2508" width="170" height="28" rx="4"/><text x="515" y="2522" text-anchor="middle" dominant-baseline="central" class="node-title">return False</text></g>
+<line x1="370" y1="2474" x2="360" y2="2474" class="arr-no"/>
+<line x1="360" y1="2474" x2="360" y2="2560" class="arr-no"/>
+<line x1="360" y1="2560" x2="370" y2="2560" class="arr-no" marker-end="url(#arr-n)"/>
+<g class="n-proc"><rect x="370" y="2560" width="290" height="32" rx="4"/><text x="515" y="2576" text-anchor="middle" dominant-baseline="central" class="node-title">cost = prop.unmortgage()</text></g>
+<line x1="515" y1="2592" x2="515" y2="2610" class="arr" marker-end="url(#arr)"/>
+<g class="n-decision"><rect x="370" y="2610" width="290" height="32" rx="4"/><text x="515" y="2626" text-anchor="middle" dominant-baseline="central" class="node-title">cost == 0? (not mortgaged)</text></g>
+<line x1="660" y1="2626" x2="670" y2="2626" class="arr-y" marker-end="url(#arr-y)"/>
+<g class="n-return"><rect x="672" y="2610" width="28" height="32" rx="4"/><text x="686" y="2626" text-anchor="middle" dominant-baseline="central" class="node-title">F</text></g>
+<line x1="515" y1="2642" x2="515" y2="2660" class="arr-no" marker-end="url(#arr-n)"/>
+<g class="n-decision"><rect x="370" y="2660" width="290" height="32" rx="4"/><text x="515" y="2676" text-anchor="middle" dominant-baseline="central" class="node-title">balance &lt; cost?</text></g>
+<line x1="660" y1="2676" x2="670" y2="2676" class="arr-y" marker-end="url(#arr-y)"/>
+<g class="n-return"><rect x="672" y="2660" width="28" height="32" rx="4"/><text x="686" y="2676" text-anchor="middle" dominant-baseline="central" class="node-title">F</text></g>
+<line x1="515" y1="2692" x2="515" y2="2710" class="arr-no" marker-end="url(#arr-n)"/>
+<g class="n-proc"><rect x="370" y="2710" width="290" height="44" rx="4"/><text x="515" y="2726" text-anchor="middle" dominant-baseline="central" class="node-title">deduct cost; bank.collect(cost)</text><text x="515" y="2743" text-anchor="middle" dominant-baseline="central" class="node-sub">print; return True</text></g>
+
+
+<!-- ═══════════════════════════════════════════════════════════════ -->
+<!--  SECTION: game.py — trade(), auction_property() -->
+<!-- ═══════════════════════════════════════════════════════════════ -->
+<rect x="10" y="2810" width="680" height="410" rx="8" class="sec-bg sec-bg-main"/>
+<text x="22" y="2828" class="sec-title sec-title-main">game.py — trade()  /  auction_property()</text>
+
+<!-- trade -->
+<g class="n-decision"><rect x="20" y="2838" width="290" height="32" rx="4"/><text x="165" y="2854" text-anchor="middle" dominant-baseline="central" class="node-title">trade: prop.owner ≠ seller?</text></g>
+<line x1="165" y1="2870" x2="165" y2="2888" class="arr-y" marker-end="url(#arr-y)"/>
+<g class="n-return"><rect x="80" y="2888" width="170" height="28" rx="4"/><text x="165" y="2902" text-anchor="middle" dominant-baseline="central" class="node-title">print "doesn't own"; return False</text></g>
+<line x1="20" y1="2854" x2="10" y2="2854" class="arr-no"/>
+<line x1="10" y1="2854" x2="10" y2="2940" class="arr-no"/>
+<line x1="10" y1="2940" x2="20" y2="2940" class="arr-no" marker-end="url(#arr-n)"/>
+<g class="n-decision"><rect x="20" y="2940" width="290" height="32" rx="4"/><text x="165" y="2956" text-anchor="middle" dominant-baseline="central" class="node-title">buyer.balance &lt; cash_amount?</text></g>
+<line x1="165" y1="2972" x2="165" y2="2990" class="arr-y" marker-end="url(#arr-y)"/>
+<g class="n-return"><rect x="80" y="2990" width="170" height="28" rx="4"/><text x="165" y="3004" text-anchor="middle" dominant-baseline="central" class="node-title">print "can't afford"; return False</text></g>
+<line x1="20" y1="2956" x2="10" y2="2956" class="arr-no"/>
+<line x1="10" y1="2956" x2="10" y2="3040" class="arr-no"/>
+<line x1="10" y1="3040" x2="20" y2="3040" class="arr-no" marker-end="url(#arr-n)"/>
+<g class="n-proc"><rect x="20" y="3040" width="290" height="56" rx="4"/><text x="165" y="3058" text-anchor="middle" dominant-baseline="central" class="node-title">buyer.deduct; prop.owner = buyer</text><text x="165" y="3075" text-anchor="middle" dominant-baseline="central" class="node-sub">seller.remove_property; buyer.add_property</text><text x="165" y="3088" text-anchor="middle" dominant-baseline="central" class="node-sub">print; return True</text></g>
+
+<!-- auction_property -->
+<g class="n-proc"><rect x="370" y="2838" width="290" height="44" rx="4"/><text x="515" y="2854" text-anchor="middle" dominant-baseline="central" class="node-title">print auction header</text><text x="515" y="2871" text-anchor="middle" dominant-baseline="central" class="node-sub">highest_bid=0, highest_bidder=None</text></g>
+<line x1="515" y1="2882" x2="515" y2="2900" class="arr" marker-end="url(#arr)"/>
+<g class="n-loop"><rect x="370" y="2900" width="290" height="32" rx="4"/><text x="515" y="2916" text-anchor="middle" dominant-baseline="central" class="node-title">FOR each player in players</text></g>
+<line x1="515" y1="2932" x2="515" y2="2950" class="arr-y" marker-end="url(#arr-y)"/>
+<g class="n-io"><rect x="370" y="2950" width="290" height="32" rx="4"/><text x="515" y="2966" text-anchor="middle" dominant-baseline="central" class="node-title">input: bid amount (0 to pass)</text></g>
+<line x1="515" y1="2982" x2="515" y2="3000" class="arr" marker-end="url(#arr)"/>
+<g class="n-decision"><rect x="370" y="3000" width="290" height="44" rx="4"/><text x="515" y="3016" text-anchor="middle" dominant-baseline="central" class="node-title">bid valid? (>0, ≥min, ≤balance)</text><text x="515" y="3033" text-anchor="middle" dominant-baseline="central" class="node-sub">else: print reason, continue</text></g>
+<line x1="515" y1="3044" x2="515" y2="3062" class="arr-y" marker-end="url(#arr-y)"/>
+<g class="n-proc"><rect x="370" y="3062" width="290" height="32" rx="4"/><text x="515" y="3078" text-anchor="middle" dominant-baseline="central" class="node-title">highest_bid = bid; highest_bidder = player</text></g>
+
+<!-- loop back -->
+<line x1="370" y1="3078" x2="355" y2="3078" class="arr-lp"/>
+<line x1="355" y1="3078" x2="355" y2="2916" class="arr-lp"/>
+<line x1="355" y1="2916" x2="370" y2="2916" class="arr-lp" marker-end="url(#arr-lp)"/>
+
+<line x1="660" y1="2916" x2="670" y2="2916" class="arr-no" marker-end="url(#arr-n)"/>
+<text x="662" y="2912" class="edge-no">done</text>
+<line x1="670" y1="2916" x2="670" y2="3120" class="arr-no"/>
+<line x1="670" y1="3120" x2="660" y2="3120" class="arr-no" marker-end="url(#arr-n)"/>
+<g class="n-decision"><rect x="370" y="3104" width="290" height="32" rx="4"/><text x="515" y="3120" text-anchor="middle" dominant-baseline="central" class="node-title">highest_bidder != None?</text></g>
+<line x1="515" y1="3136" x2="515" y2="3154" class="arr-y" marker-end="url(#arr-y)"/>
+<g class="n-proc"><rect x="370" y="3154" width="290" height="44" rx="4"/><text x="515" y="3170" text-anchor="middle" dominant-baseline="central" class="node-title">deduct bid; prop.owner = winner</text><text x="515" y="3187" text-anchor="middle" dominant-baseline="central" class="node-sub">winner.add_property; bank.collect</text></g>
+<line x1="370" y1="3120" x2="360" y2="3120" class="arr-no" marker-end="url(#arr-n)"/>
+<g class="n-io"><rect x="300" y="3104" width="60" height="32" rx="4"/><text x="330" y="3120" text-anchor="middle" dominant-baseline="central" class="node-title">print "no bids"</text></g>
+
+
+<!-- ═══════════════════════════════════════════════════════════════ -->
+<!--  SECTION: game.py — _handle_jail_turn() -->
+<!-- ═══════════════════════════════════════════════════════════════ -->
+<rect x="10" y="3220" width="680" height="370" rx="8" class="sec-bg sec-bg-main"/>
+<text x="22" y="3238" class="sec-title sec-title-main">game.py — _handle_jail_turn(player)</text>
+
+<g class="n-decision"><rect x="165" y="3248" width="350" height="32" rx="4"/><text x="340" y="3264" text-anchor="middle" dominant-baseline="central" class="node-title">get_out_of_jail_cards &gt; 0?</text></g>
+<line x1="515" y1="3264" x2="570" y2="3264" class="arr-y" marker-end="url(#arr-y)"/>
+<text x="518" y="3260" class="edge-yes">yes</text>
+<g class="n-io"><rect x="570" y="3248" width="100" height="32" rx="4"/><text x="620" y="3264" text-anchor="middle" dominant-baseline="central" class="node-title">confirm: use card?</text></g>
+<line x1="620" y1="3280" x2="620" y2="3298" class="arr" marker-end="url(#arr)"/>
+<g class="n-decision"><rect x="570" y="3298" width="100" height="32" rx="4"/><text x="620" y="3314" text-anchor="middle" dominant-baseline="central" class="node-title">yes?</text></g>
+<line x1="620" y1="3330" x2="620" y2="3348" class="arr-y" marker-end="url(#arr-y)"/>
+<g class="n-proc"><rect x="556" y="3348" width="128" height="44" rx="4"/><text x="620" y="3364" text-anchor="middle" dominant-baseline="central" class="node-title">cards -= 1; in_jail=False</text><text x="620" y="3381" text-anchor="middle" dominant-baseline="central" class="node-sub">roll + _move_and_resolve; return</text></g>
+
+<line x1="340" y1="3280" x2="340" y2="3298" class="arr-no" marker-end="url(#arr-n)"/>
+<text x="346" y="3294" class="edge-no">no</text>
+
+<g class="n-io"><rect x="165" y="3298" width="350" height="32" rx="4"/><text x="340" y="3314" text-anchor="middle" dominant-baseline="central" class="node-title">confirm: pay $50 fine voluntarily?</text></g>
+<line x1="515" y1="3314" x2="540" y2="3314" class="arr-y" marker-end="url(#arr-y)"/>
+<text x="518" y="3310" class="edge-yes">yes</text>
+<g class="n-proc"><rect x="540" y="3440" width="130" height="56" rx="4"/><text x="605" y="3456" text-anchor="middle" dominant-baseline="central" class="node-title">collect fine; in_jail=False</text><text x="605" y="3473" text-anchor="middle" dominant-baseline="central" class="node-sub">roll + _move_and_resolve; return</text></g>
+<line x1="540" y1="3314" x2="540" y2="3468" class="arr-y" marker-end="url(#arr-y)"/>
+<line x1="540" y1="3468" x2="540" y2="3468" class="arr" marker-end="url(#arr)"/>
+
+<line x1="340" y1="3330" x2="340" y2="3348" class="arr-no" marker-end="url(#arr-n)"/>
+<text x="346" y="3344" class="edge-no">no</text>
+
+<g class="n-proc"><rect x="165" y="3348" width="350" height="32" rx="4"/><text x="340" y="3364" text-anchor="middle" dominant-baseline="central" class="node-title">jail_turns += 1</text></g>
+<line x1="340" y1="3380" x2="340" y2="3398" class="arr" marker-end="url(#arr)"/>
+
+<g class="n-decision"><rect x="165" y="3398" width="350" height="32" rx="4"/><text x="340" y="3414" text-anchor="middle" dominant-baseline="central" class="node-title">jail_turns ≥ 3?</text></g>
+<line x1="515" y1="3414" x2="530" y2="3414" class="arr-y" marker-end="url(#arr-y)"/>
+<text x="518" y="3410" class="edge-yes">yes</text>
+<g class="n-proc"><rect x="530" y="3398" width="140" height="56" rx="4"/><text x="600" y="3414" text-anchor="middle" dominant-baseline="central" class="node-title">mandatory release</text><text x="600" y="3431" text-anchor="middle" dominant-baseline="central" class="node-sub">deduct fine; in_jail=False</text><text x="600" y="3448" text-anchor="middle" dominant-baseline="central" class="node-sub">roll + _move_and_resolve</text></g>
+
+<line x1="340" y1="3430" x2="340" y2="3454" class="arr-no" marker-end="url(#arr-n)"/>
+<text x="346" y="3450" class="edge-no">no</text>
+<g class="n-return"><rect x="230" y="3454" width="220" height="28" rx="4"/><text x="340" y="3468" text-anchor="middle" dominant-baseline="central" class="node-title">return (stay in jail this turn)</text></g>
+
+
+<!-- ═══════════════════════════════════════════════════════════════ -->
+<!--  SECTION: game.py — _apply_card() -->
+<!-- ═══════════════════════════════════════════════════════════════ -->
+<rect x="10" y="3610" width="680" height="320" rx="8" class="sec-bg sec-bg-main"/>
+<text x="22" y="3628" class="sec-title sec-title-main">game.py — _apply_card(player, card)</text>
+
+<g class="n-decision"><rect x="185" y="3638" width="310" height="32" rx="4"/><text x="340" y="3654" text-anchor="middle" dominant-baseline="central" class="node-title">card is None?</text></g>
+<line x1="495" y1="3654" x2="550" y2="3654" class="arr-y" marker-end="url(#arr-y)"/>
+<g class="n-return"><rect x="550" y="3638" width="120" height="32" rx="4"/><text x="610" y="3654" text-anchor="middle" dominant-baseline="central" class="node-title">return</text></g>
+
+<line x1="340" y1="3670" x2="340" y2="3688" class="arr-no" marker-end="url(#arr-n)"/>
+<text x="346" y="3684" class="edge-no">no</text>
+<g class="n-proc"><rect x="185" y="3688" width="310" height="32" rx="4"/><text x="340" y="3704" text-anchor="middle" dominant-baseline="central" class="node-title">print card description; read action, value</text></g>
+<line x1="340" y1="3720" x2="340" y2="3738" class="arr" marker-end="url(#arr)"/>
+
+<g class="n-decision"><rect x="185" y="3738" width="310" height="32" rx="4"/><text x="340" y="3754" text-anchor="middle" dominant-baseline="central" class="node-title">action?</text></g>
+
+<line x1="210" y1="3770" x2="50"  y2="3800" class="arr" marker-end="url(#arr)"/>
+<line x1="265" y1="3770" x2="160" y2="3800" class="arr" marker-end="url(#arr)"/>
+<line x1="320" y1="3770" x2="270" y2="3800" class="arr" marker-end="url(#arr)"/>
+<line x1="370" y1="3770" x2="370" y2="3800" class="arr" marker-end="url(#arr)"/>
+<line x1="420" y1="3770" x2="470" y2="3800" class="arr" marker-end="url(#arr)"/>
+<line x1="470" y1="3770" x2="560" y2="3800" class="arr" marker-end="url(#arr)"/>
+<line x1="500" y1="3770" x2="640" y2="3800" class="arr" marker-end="url(#arr)"/>
+
+<g class="n-proc"><rect x="20"  y="3800" width="60"  height="56" rx="4"/><text x="50"  y="3818" text-anchor="middle" dominant-baseline="central" class="node-title">collect</text><text x="50"  y="3840" text-anchor="middle" dominant-baseline="central" class="node-sub">bank.pay_out add_money</text></g>
+<g class="n-proc"><rect x="92"  y="3800" width="56"  height="56" rx="4"/><text x="120" y="3818" text-anchor="middle" dominant-baseline="central" class="node-title">pay</text><text x="120" y="3840" text-anchor="middle" dominant-baseline="central" class="node-sub">deduct bank.collect</text></g>
+<g class="n-proc"><rect x="158" y="3800" width="56"  height="56" rx="4"/><text x="186" y="3818" text-anchor="middle" dominant-baseline="central" class="node-title">jail</text><text x="186" y="3840" text-anchor="middle" dominant-baseline="central" class="node-sub">go_to_jail()</text></g>
+<g class="n-proc"><rect x="224" y="3800" width="92"  height="56" rx="4"/><text x="270" y="3818" text-anchor="middle" dominant-baseline="central" class="node-title">jail_free</text><text x="270" y="3840" text-anchor="middle" dominant-baseline="central" class="node-sub">cards += 1</text></g>
+<g class="n-proc"><rect x="326" y="3800" width="88"  height="56" rx="4"/><text x="370" y="3818" text-anchor="middle" dominant-baseline="central" class="node-title">move_to</text><text x="370" y="3840" text-anchor="middle" dominant-baseline="central" class="node-sub">set position if passed Go → salary; land tile</text></g>
+<g class="n-proc"><rect x="424" y="3800" width="68"  height="56" rx="4"/><text x="458" y="3818" text-anchor="middle" dominant-baseline="central" class="node-title">birthday</text><text x="458" y="3840" text-anchor="middle" dominant-baseline="central" class="node-sub">each player pays value</text></g>
+<g class="n-proc"><rect x="502" y="3800" width="90"  height="56" rx="4"/><text x="547" y="3818" text-anchor="middle" dominant-baseline="central" class="node-title">collect_from_all</text><text x="547" y="3840" text-anchor="middle" dominant-baseline="central" class="node-sub">each player pays value</text></g>
+
+<line x1="50"  y1="3856" x2="50"  y2="3900" class="arr"/>
+<line x1="120" y1="3856" x2="120" y2="3900" class="arr"/>
+<line x1="186" y1="3856" x2="186" y2="3900" class="arr"/>
+<line x1="270" y1="3856" x2="270" y2="3900" class="arr"/>
+<line x1="370" y1="3856" x2="370" y2="3900" class="arr"/>
+<line x1="458" y1="3856" x2="458" y2="3900" class="arr"/>
+<line x1="547" y1="3856" x2="547" y2="3900" class="arr"/>
+<line x1="50" y1="3900" x2="547" y2="3900" class="arr"/>
+<line x1="340" y1="3900" x2="340" y2="3918" class="arr" marker-end="url(#arr)"/>
+<g class="n-return"><rect x="230" y="3918" width="220" height="24" rx="4"/><text x="340" y="3930" text-anchor="middle" dominant-baseline="central" class="node-title">return</text></g>
+
+
+<!-- ═══════════════════════════════════════════════════════════════ -->
+<!--  SECTION: game.py — _check_bankruptcy(), find_winner() -->
+<!-- ═══════════════════════════════════════════════════════════════ -->
+<rect x="10" y="3950" width="680" height="240" rx="8" class="sec-bg sec-bg-main"/>
+<text x="22" y="3968" class="sec-title sec-title-main">game.py — _check_bankruptcy()  /  find_winner()</text>
+
+<g class="n-decision"><rect x="20" y="3978" width="290" height="32" rx="4"/><text x="165" y="3994" text-anchor="middle" dominant-baseline="central" class="node-title">_check_bankruptcy: is_bankrupt()?</text></g>
+<line x1="165" y1="4010" x2="165" y2="4028" class="arr-y" marker-end="url(#arr-y)"/>
+<g class="n-proc"><rect x="20" y="4028" width="290" height="56" rx="4"/><text x="165" y="4044" text-anchor="middle" dominant-baseline="central" class="node-title">is_eliminated = True</text><text x="165" y="4061" text-anchor="middle" dominant-baseline="central" class="node-sub">release all props; players.remove(player)</text><text x="165" y="4078" text-anchor="middle" dominant-baseline="central" class="node-sub">fix current_index if needed</text></g>
+<line x1="310" y1="3994" x2="320" y2="3994" class="arr-no" marker-end="url(#arr-n)"/>
+<text x="312" y="3990" class="edge-no">no</text>
+<g class="n-return"><rect x="320" y="3978" width="40" height="32" rx="4"/><text x="340" y="3994" text-anchor="middle" dominant-baseline="central" class="node-title">return</text></g>
+
+<!-- find_winner -->
+<g class="n-decision"><rect x="380" y="3978" width="290" height="32" rx="4"/><text x="525" y="3994" text-anchor="middle" dominant-baseline="central" class="node-title">find_winner: players empty?</text></g>
+<line x1="525" y1="4010" x2="525" y2="4028" class="arr-y" marker-end="url(#arr-y)"/>
+<g class="n-return"><rect x="430" y="4028" width="190" height="28" rx="4"/><text x="525" y="4042" text-anchor="middle" dominant-baseline="central" class="node-title">return None</text></g>
+<line x1="380" y1="3994" x2="370" y2="3994" class="arr-no"/>
+<line x1="370" y1="3994" x2="370" y2="4090" class="arr-no"/>
+<line x1="370" y1="4090" x2="380" y2="4090" class="arr-no" marker-end="url(#arr-n)"/>
+<g class="n-return"><rect x="380" y="4074" width="290" height="32" rx="4"/><text x="525" y="4090" text-anchor="middle" dominant-baseline="central" class="node-title">return min(players, key=net_worth)</text></g>
+
+
+<!-- ═══════════════════════════════════════════════════════════════ -->
+<!--  SECTION: game.py — interactive_menu(), _menu_* -->
+<!-- ═══════════════════════════════════════════════════════════════ -->
+<rect x="10" y="4210" width="680" height="420" rx="8" class="sec-bg sec-bg-main"/>
+<text x="22" y="4228" class="sec-title sec-title-main">game.py — interactive_menu()  /  _menu_mortgage()  /  _menu_unmortgage()  /  _menu_trade()</text>
+
+<!-- interactive_menu -->
+<g class="n-loop"><rect x="20" y="4238" width="270" height="32" rx="4"/><text x="155" y="4254" text-anchor="middle" dominant-baseline="central" class="node-title">interactive_menu: WHILE True</text></g>
+<line x1="155" y1="4270" x2="155" y2="4288" class="arr-y" marker-end="url(#arr-y)"/>
+<g class="n-io"><rect x="20" y="4288" width="270" height="32" rx="4"/><text x="155" y="4304" text-anchor="middle" dominant-baseline="central" class="node-title">print menu; safe_int_input → choice</text></g>
+<line x1="155" y1="4320" x2="155" y2="4338" class="arr" marker-end="url(#arr)"/>
+<g class="n-decision"><rect x="20" y="4338" width="270" height="32" rx="4"/><text x="155" y="4354" text-anchor="middle" dominant-baseline="central" class="node-title">choice?</text></g>
+<line x1="155" y1="4370" x2="155" y2="4388" class="arr" marker-end="url(#arr)"/>
+<g class="n-proc"><rect x="20" y="4388" width="270" height="88" rx="4"/>
+  <text x="155" y="4404" text-anchor="middle" dominant-baseline="central" class="node-title">0 → break</text>
+  <text x="155" y="4421" text-anchor="middle" dominant-baseline="central" class="node-sub">1 → print_standings()</text>
+  <text x="155" y="4438" text-anchor="middle" dominant-baseline="central" class="node-sub">2 → print_board_ownership()</text>
+  <text x="155" y="4455" text-anchor="middle" dominant-baseline="central" class="node-sub">3/4/5 → _menu_mortgage/unmortgage/trade</text>
+  <text x="155" y="4472" text-anchor="middle" dominant-baseline="central" class="node-sub">6 → bank.give_loan(player, amount)</text>
+</g>
+<!-- loop back -->
+<line x1="20" y1="4432" x2="10" y2="4432" class="arr-lp"/>
+<line x1="10" y1="4432" x2="10" y2="4254" class="arr-lp"/>
+<line x1="10" y1="4254" x2="20" y2="4254" class="arr-lp" marker-end="url(#arr-lp)"/>
+
+<!-- _menu_mortgage -->
+<g class="n-decision"><rect x="330" y="4238" width="180" height="44" rx="4"/><text x="420" y="4254" text-anchor="middle" dominant-baseline="central" class="node-title">_menu_mortgage:</text><text x="420" y="4271" text-anchor="middle" dominant-baseline="central" class="node-sub">mortgageable list empty?</text></g>
+<line x1="420" y1="4282" x2="420" y2="4300" class="arr-y" marker-end="url(#arr-y)"/>
+<g class="n-return"><rect x="355" y="4300" width="130" height="28" rx="4"/><text x="420" y="4314" text-anchor="middle" dominant-baseline="central" class="node-title">print "none"; return</text></g>
+<line x1="330" y1="4260" x2="320" y2="4260" class="arr-no"/>
+<line x1="320" y1="4260" x2="320" y2="4360" class="arr-no"/>
+<line x1="320" y1="4360" x2="330" y2="4360" class="arr-no" marker-end="url(#arr-n)"/>
+<g class="n-io"><rect x="330" y="4348" width="180" height="32" rx="4"/><text x="420" y="4364" text-anchor="middle" dominant-baseline="central" class="node-title">print list; input idx</text></g>
+<line x1="420" y1="4380" x2="420" y2="4398" class="arr" marker-end="url(#arr)"/>
+<g class="n-decision"><rect x="330" y="4398" width="180" height="32" rx="4"/><text x="420" y="4414" text-anchor="middle" dominant-baseline="central" class="node-title">idx valid?</text></g>
+<line x1="420" y1="4430" x2="420" y2="4448" class="arr-y" marker-end="url(#arr-y)"/>
+<g class="n-proc"><rect x="330" y="4448" width="180" height="28" rx="4"/><text x="420" y="4462" text-anchor="middle" dominant-baseline="central" class="node-title">mortgage_property()</text></g>
+
+<!-- _menu_unmortgage -->
+<g class="n-decision"><rect x="530" y="4238" width="150" height="44" rx="4"/><text x="605" y="4254" text-anchor="middle" dominant-baseline="central" class="node-title">_menu_unmortgage:</text><text x="605" y="4271" text-anchor="middle" dominant-baseline="central" class="node-sub">mortgaged list empty?</text></g>
+<line x1="605" y1="4282" x2="605" y2="4300" class="arr-y" marker-end="url(#arr-y)"/>
+<g class="n-return"><rect x="540" y="4300" width="130" height="28" rx="4"/><text x="605" y="4314" text-anchor="middle" dominant-baseline="central" class="node-title">print "none"; return</text></g>
+<line x1="530" y1="4260" x2="520" y2="4260" class="arr-no"/>
+<line x1="520" y1="4260" x2="520" y2="4360" class="arr-no"/>
+<line x1="520" y1="4360" x2="530" y2="4360" class="arr-no" marker-end="url(#arr-n)"/>
+<g class="n-io"><rect x="530" y="4348" width="150" height="32" rx="4"/><text x="605" y="4364" text-anchor="middle" dominant-baseline="central" class="node-title">print list; input idx</text></g>
+<line x1="605" y1="4380" x2="605" y2="4398" class="arr" marker-end="url(#arr)"/>
+<g class="n-decision"><rect x="530" y="4398" width="150" height="32" rx="4"/><text x="605" y="4414" text-anchor="middle" dominant-baseline="central" class="node-title">idx valid?</text></g>
+<line x1="605" y1="4430" x2="605" y2="4448" class="arr-y" marker-end="url(#arr-y)"/>
+<g class="n-proc"><rect x="530" y="4448" width="150" height="28" rx="4"/><text x="605" y="4462" text-anchor="middle" dominant-baseline="central" class="node-title">unmortgage_property()</text></g>
+
+
+<!-- ═══════════════════════════════════════════════════════════════ -->
+<!--  SECTION: player.py -->
+<!-- ═══════════════════════════════════════════════════════════════ -->
+<rect x="700" y="80" width="660" height="900" rx="8" class="sec-bg sec-bg-player"/>
+<text x="712" y="98" class="sec-title sec-title-player">player.py — Player</text>
+
+<!-- __init__ -->
+<g class="n-proc"><rect x="720" y="108" width="280" height="56" rx="4"/><text x="860" y="124" text-anchor="middle" dominant-baseline="central" class="node-title">__init__(name, balance)</text><text x="860" y="141" text-anchor="middle" dominant-baseline="central" class="node-sub">set name, balance, position=0</text><text x="860" y="157" text-anchor="middle" dominant-baseline="central" class="node-sub">properties=[], in_jail=False, etc.</text></g>
+
+<!-- add_money -->
+<g class="n-decision"><rect x="720" y="184" width="280" height="32" rx="4"/><text x="860" y="200" text-anchor="middle" dominant-baseline="central" class="node-title">add_money: amount &lt; 0?</text></g>
+<line x1="1000" y1="200" x2="1030" y2="200" class="arr-y" marker-end="url(#arr-y)"/>
+<g class="n-error"><rect x="1030" y="184" width="130" height="32" rx="4"/><text x="1095" y="200" text-anchor="middle" dominant-baseline="central" class="node-title">raise ValueError</text></g>
+<line x1="860" y1="216" x2="860" y2="234" class="arr-no" marker-end="url(#arr-n)"/>
+<g class="n-proc"><rect x="720" y="234" width="280" height="28" rx="4"/><text x="860" y="248" text-anchor="middle" dominant-baseline="central" class="node-title">balance += amount</text></g>
+
+<!-- deduct_money -->
+<g class="n-decision"><rect x="720" y="282" width="280" height="32" rx="4"/><text x="860" y="298" text-anchor="middle" dominant-baseline="central" class="node-title">deduct_money: amount &lt; 0?</text></g>
+<line x1="1000" y1="298" x2="1030" y2="298" class="arr-y" marker-end="url(#arr-y)"/>
+<g class="n-error"><rect x="1030" y="282" width="130" height="32" rx="4"/><text x="1095" y="298" text-anchor="middle" dominant-baseline="central" class="node-title">raise ValueError</text></g>
+<line x1="860" y1="314" x2="860" y2="332" class="arr-no" marker-end="url(#arr-n)"/>
+<g class="n-proc"><rect x="720" y="332" width="280" height="28" rx="4"/><text x="860" y="346" text-anchor="middle" dominant-baseline="central" class="node-title">balance -= amount</text></g>
+
+<!-- is_bankrupt -->
+<g class="n-return"><rect x="720" y="380" width="280" height="32" rx="4"/><text x="860" y="396" text-anchor="middle" dominant-baseline="central" class="node-title">is_bankrupt(): return balance &lt;= 0</text></g>
+
+<!-- net_worth -->
+<g class="n-return"><rect x="720" y="432" width="280" height="28" rx="4"/><text x="860" y="446" text-anchor="middle" dominant-baseline="central" class="node-title">net_worth(): return balance</text></g>
+
+<!-- move -->
+<g class="n-proc"><rect x="720" y="480" width="280" height="32" rx="4"/><text x="860" y="496" text-anchor="middle" dominant-baseline="central" class="node-title">move(steps): position = (pos+steps) % 40</text></g>
+<line x1="860" y1="512" x2="860" y2="530" class="arr" marker-end="url(#arr)"/>
+<g class="n-decision"><rect x="720" y="530" width="280" height="32" rx="4"/><text x="860" y="546" text-anchor="middle" dominant-baseline="central" class="node-title">position == 0 (landed on Go)?</text></g>
+<line x1="860" y1="562" x2="860" y2="580" class="arr-y" marker-end="url(#arr-y)"/>
+<g class="n-proc"><rect x="720" y="580" width="280" height="28" rx="4"/><text x="860" y="594" text-anchor="middle" dominant-baseline="central" class="node-title">add_money(GO_SALARY); print</text></g>
+<line x1="1000" y1="546" x2="1030" y2="546" class="arr-no" marker-end="url(#arr-n)"/>
+<g class="n-return"><rect x="1030" y="530" width="130" height="32" rx="4"/><text x="1095" y="546" text-anchor="middle" dominant-baseline="central" class="node-title">return position</text></g>
+<line x1="860" y1="608" x2="860" y2="626" class="arr" marker-end="url(#arr)"/>
+<g class="n-return"><rect x="720" y="626" width="280" height="28" rx="4"/><text x="860" y="640" text-anchor="middle" dominant-baseline="central" class="node-title">return position</text></g>
+
+<!-- go_to_jail -->
+<g class="n-proc"><rect x="720" y="674" width="280" height="44" rx="4"/><text x="860" y="690" text-anchor="middle" dominant-baseline="central" class="node-title">go_to_jail()</text><text x="860" y="707" text-anchor="middle" dominant-baseline="central" class="node-sub">position=10; in_jail=True; jail_turns=0</text></g>
+
+<!-- add_property -->
+<g class="n-decision"><rect x="720" y="738" width="280" height="32" rx="4"/><text x="860" y="754" text-anchor="middle" dominant-baseline="central" class="node-title">add_property: prop not in properties?</text></g>
+<line x1="860" y1="770" x2="860" y2="788" class="arr-y" marker-end="url(#arr-y)"/>
+<g class="n-proc"><rect x="720" y="788" width="280" height="28" rx="4"/><text x="860" y="802" text-anchor="middle" dominant-baseline="central" class="node-title">properties.append(prop)</text></g>
+<line x1="1000" y1="754" x2="1030" y2="754" class="arr-no" marker-end="url(#arr-n)"/>
+<g class="n-return"><rect x="1030" y="738" width="80" height="32" rx="4"/><text x="1070" y="754" text-anchor="middle" dominant-baseline="central" class="node-title">return</text></g>
+
+<!-- remove_property -->
+<g class="n-decision"><rect x="720" y="836" width="280" height="32" rx="4"/><text x="860" y="852" text-anchor="middle" dominant-baseline="central" class="node-title">remove_property: prop in properties?</text></g>
+<line x1="860" y1="868" x2="860" y2="886" class="arr-y" marker-end="url(#arr-y)"/>
+<g class="n-proc"><rect x="720" y="886" width="280" height="28" rx="4"/><text x="860" y="900" text-anchor="middle" dominant-baseline="central" class="node-title">properties.remove(prop)</text></g>
+<line x1="1000" y1="852" x2="1030" y2="852" class="arr-no" marker-end="url(#arr-n)"/>
+<g class="n-return"><rect x="1030" y="836" width="80" height="32" rx="4"/><text x="1070" y="852" text-anchor="middle" dominant-baseline="central" class="node-title">return</text></g>
+
+<!-- count_properties, status_line -->
+<g class="n-return"><rect x="720" y="934" width="280" height="28" rx="4"/><text x="860" y="948" text-anchor="middle" dominant-baseline="central" class="node-title">count_properties(): return len(properties)</text></g>
+<g class="n-return"><rect x="720" y="972" width="280" height="28" rx="4"/><text x="860" y="986" text-anchor="middle" dominant-baseline="central" class="node-title">status_line(): build + return string</text></g>
+
+
+<!-- ═══════════════════════════════════════════════════════════════ -->
+<!--  SECTION: dice.py -->
+<!-- ═══════════════════════════════════════════════════════════════ -->
+<rect x="700" y="1010" width="660" height="400" rx="8" class="sec-bg sec-bg-dice"/>
+<text x="712" y="1028" class="sec-title sec-title-dice">dice.py — Dice</text>
+
+<g class="n-proc"><rect x="720" y="1038" width="280" height="44" rx="4"/><text x="860" y="1054" text-anchor="middle" dominant-baseline="central" class="node-title">__init__()</text><text x="860" y="1071" text-anchor="middle" dominant-baseline="central" class="node-sub">die1=die2=0; call reset()</text></g>
+
+<g class="n-proc"><rect x="720" y="1102" width="280" height="44" rx="4"/><text x="860" y="1118" text-anchor="middle" dominant-baseline="central" class="node-title">reset()</text><text x="860" y="1135" text-anchor="middle" dominant-baseline="central" class="node-sub">die1=die2=0; doubles_streak=0</text></g>
+
+<!-- roll -->
+<g class="n-proc"><rect x="720" y="1166" width="280" height="32" rx="4"/><text x="860" y="1182" text-anchor="middle" dominant-baseline="central" class="node-title">roll(): die1=randint(1,5); die2=randint(1,5)</text></g>
+<line x1="860" y1="1198" x2="860" y2="1216" class="arr" marker-end="url(#arr)"/>
+<g class="n-decision"><rect x="720" y="1216" width="280" height="32" rx="4"/><text x="860" y="1232" text-anchor="middle" dominant-baseline="central" class="node-title">is_doubles()?</text></g>
+<line x1="860" y1="1248" x2="860" y2="1266" class="arr-y" marker-end="url(#arr-y)"/>
+<g class="n-proc"><rect x="720" y="1266" width="280" height="28" rx="4"/><text x="860" y="1280" text-anchor="middle" dominant-baseline="central" class="node-title">doubles_streak += 1</text></g>
+<line x1="1000" y1="1232" x2="1030" y2="1232" class="arr-no" marker-end="url(#arr-n)"/>
+<g class="n-proc"><rect x="1030" y="1216" width="140" height="32" rx="4"/><text x="1100" y="1232" text-anchor="middle" dominant-baseline="central" class="node-title">doubles_streak = 0</text></g>
+<line x1="860" y1="1294" x2="860" y2="1312" class="arr" marker-end="url(#arr)"/>
+<g class="n-return"><rect x="720" y="1312" width="280" height="28" rx="4"/><text x="860" y="1326" text-anchor="middle" dominant-baseline="central" class="node-title">return total()</text></g>
+
+<g class="n-return"><rect x="720" y="1360" width="280" height="28" rx="4"/><text x="860" y="1374" text-anchor="middle" dominant-baseline="central" class="node-title">is_doubles(): return die1 == die2</text></g>
+<g class="n-return"><rect x="720" y="1398" width="280" height="28" rx="4"/><text x="860" y="1412" text-anchor="middle" dominant-baseline="central" class="node-title">total(): return die1 + die2</text></g>
+
+<!-- describe -->
+<g class="n-decision"><rect x="720" y="1368" width="0" height="0" rx="0"/></g>
+<g class="n-proc"><rect x="1030" y="1360" width="290" height="44" rx="4"/><text x="1175" y="1376" text-anchor="middle" dominant-baseline="central" class="node-title">describe()</text><text x="1175" y="1393" text-anchor="middle" dominant-baseline="central" class="node-sub">note = "(DOUBLES)" if is_doubles() else ""  → return string</text></g>
+
+
+<!-- ═══════════════════════════════════════════════════════════════ -->
+<!--  SECTION: property.py -->
+<!-- ═══════════════════════════════════════════════════════════════ -->
+<rect x="700" y="1450" width="660" height="700" rx="8" class="sec-bg sec-bg-prop"/>
+<text x="712" y="1468" class="sec-title sec-title-prop">property.py — Property  /  PropertyGroup</text>
+
+<!-- Property.__init__ -->
+<g class="n-proc"><rect x="720" y="1478" width="280" height="56" rx="4"/><text x="860" y="1494" text-anchor="middle" dominant-baseline="central" class="node-title">Property.__init__(name, pos, price, rent, group)</text><text x="860" y="1511" text-anchor="middle" dominant-baseline="central" class="node-sub">set fields; is_mortgaged=False; owner=None</text><text x="860" y="1527" text-anchor="middle" dominant-baseline="central" class="node-sub">if group not None → group.properties.append(self)</text></g>
+
+<!-- get_rent -->
+<g class="n-decision"><rect x="720" y="1554" width="280" height="32" rx="4"/><text x="860" y="1570" text-anchor="middle" dominant-baseline="central" class="node-title">get_rent: is_mortgaged?</text></g>
+<line x1="860" y1="1586" x2="860" y2="1604" class="arr-y" marker-end="url(#arr-y)"/>
+<g class="n-return"><rect x="720" y="1604" width="280" height="28" rx="4"/><text x="860" y="1618" text-anchor="middle" dominant-baseline="central" class="node-title">return 0</text></g>
+<line x1="1000" y1="1570" x2="1020" y2="1570" class="arr-no"/>
+<line x1="1020" y1="1570" x2="1020" y2="1642" class="arr-no"/>
+<line x1="1020" y1="1642" x2="1000" y2="1642" class="arr-no" marker-end="url(#arr-n)"/>
+<g class="n-decision"><rect x="720" y="1630" width="280" height="32" rx="4"/><text x="860" y="1646" text-anchor="middle" dominant-baseline="central" class="node-title">group.all_owned_by(owner)?</text></g>
+<line x1="860" y1="1662" x2="860" y2="1680" class="arr-y" marker-end="url(#arr-y)"/>
+<g class="n-return"><rect x="720" y="1680" width="280" height="28" rx="4"/><text x="860" y="1694" text-anchor="middle" dominant-baseline="central" class="node-title">return base_rent × 2</text></g>
+<line x1="720" y1="1646" x2="710" y2="1646" class="arr-no"/>
+<line x1="710" y1="1646" x2="710" y2="1726" class="arr-no"/>
+<line x1="710" y1="1726" x2="720" y2="1726" class="arr-no" marker-end="url(#arr-n)"/>
+<g class="n-return"><rect x="720" y="1714" width="280" height="28" rx="4"/><text x="860" y="1728" text-anchor="middle" dominant-baseline="central" class="node-title">return base_rent</text></g>
+
+<!-- mortgage -->
+<g class="n-decision"><rect x="720" y="1762" width="280" height="32" rx="4"/><text x="860" y="1778" text-anchor="middle" dominant-baseline="central" class="node-title">mortgage(): is_mortgaged?</text></g>
+<line x1="860" y1="1794" x2="860" y2="1812" class="arr-y" marker-end="url(#arr-y)"/>
+<g class="n-return"><rect x="720" y="1812" width="280" height="28" rx="4"/><text x="860" y="1826" text-anchor="middle" dominant-baseline="central" class="node-title">return 0</text></g>
+<line x1="1000" y1="1778" x2="1020" y2="1778" class="arr-no"/>
+<line x1="1020" y1="1778" x2="1020" y2="1858" class="arr-no"/>
+<line x1="1020" y1="1858" x2="1000" y2="1858" class="arr-no" marker-end="url(#arr-n)"/>
+<g class="n-return"><rect x="720" y="1846" width="280" height="28" rx="4"/><text x="860" y="1860" text-anchor="middle" dominant-baseline="central" class="node-title">is_mortgaged=True; return mortgage_value</text></g>
+
+<!-- unmortgage -->
+<g class="n-decision"><rect x="720" y="1894" width="280" height="32" rx="4"/><text x="860" y="1910" text-anchor="middle" dominant-baseline="central" class="node-title">unmortgage(): not is_mortgaged?</text></g>
+<line x1="860" y1="1926" x2="860" y2="1944" class="arr-y" marker-end="url(#arr-y)"/>
+<g class="n-return"><rect x="720" y="1944" width="280" height="28" rx="4"/><text x="860" y="1958" text-anchor="middle" dominant-baseline="central" class="node-title">return 0</text></g>
+<line x1="1000" y1="1910" x2="1020" y2="1910" class="arr-no"/>
+<line x1="1020" y1="1910" x2="1020" y2="1990" class="arr-no"/>
+<line x1="1020" y1="1990" x2="1000" y2="1990" class="arr-no" marker-end="url(#arr-n)"/>
+<g class="n-return"><rect x="720" y="1978" width="280" height="28" rx="4"/><text x="860" y="1992" text-anchor="middle" dominant-baseline="central" class="node-title">cost = mortgage_value×1.1; is_mortgaged=False; return cost</text></g>
+
+<!-- is_available -->
+<g class="n-return"><rect x="720" y="2026" width="280" height="28" rx="4"/><text x="860" y="2040" text-anchor="middle" dominant-baseline="central" class="node-title">is_available(): owner is None AND not mortgaged</text></g>
+
+<!-- PropertyGroup -->
+<g class="n-proc"><rect x="1040" y="1478" width="300" height="44" rx="4"/><text x="1190" y="1494" text-anchor="middle" dominant-baseline="central" class="node-title">PropertyGroup.__init__(name, color)</text><text x="1190" y="1511" text-anchor="middle" dominant-baseline="central" class="node-sub">properties=[]</text></g>
+
+<!-- add_property -->
+<g class="n-decision"><rect x="1040" y="1542" width="300" height="32" rx="4"/><text x="1190" y="1558" text-anchor="middle" dominant-baseline="central" class="node-title">add_property: prop not in properties?</text></g>
+<line x1="1190" y1="1574" x2="1190" y2="1592" class="arr-y" marker-end="url(#arr-y)"/>
+<g class="n-proc"><rect x="1040" y="1592" width="300" height="32" rx="4"/><text x="1190" y="1608" text-anchor="middle" dominant-baseline="central" class="node-title">properties.append(prop); prop.group = self</text></g>
+<line x1="1040" y1="1558" x2="1030" y2="1558" class="arr-no"/>
+<g class="n-return"><rect x="1040" y="1644" width="300" height="28" rx="4"/><text x="1190" y="1658" text-anchor="middle" dominant-baseline="central" class="node-title">return</text></g>
+
+<!-- all_owned_by -->
+<g class="n-decision"><rect x="1040" y="1692" width="300" height="32" rx="4"/><text x="1190" y="1708" text-anchor="middle" dominant-baseline="central" class="node-title">all_owned_by: player is None?</text></g>
+<line x1="1190" y1="1724" x2="1190" y2="1742" class="arr-y" marker-end="url(#arr-y)"/>
+<g class="n-return"><rect x="1040" y="1742" width="300" height="28" rx="4"/><text x="1190" y="1756" text-anchor="middle" dominant-baseline="central" class="node-title">return False</text></g>
+<line x1="1040" y1="1708" x2="1030" y2="1708" class="arr-no"/>
+<line x1="1030" y1="1708" x2="1030" y2="1790" class="arr-no"/>
+<line x1="1030" y1="1790" x2="1040" y2="1790" class="arr-no" marker-end="url(#arr-n)"/>
+<g class="n-return"><rect x="1040" y="1778" width="300" height="28" rx="4"/><text x="1190" y="1792" text-anchor="middle" dominant-baseline="central" class="node-title">return any(p.owner == player for p in properties)</text></g>
+
+<!-- get_owner_counts -->
+<g class="n-proc"><rect x="1040" y="1826" width="300" height="32" rx="4"/><text x="1190" y="1842" text-anchor="middle" dominant-baseline="central" class="node-title">get_owner_counts(): counts = {}</text></g>
+<line x1="1190" y1="1858" x2="1190" y2="1876" class="arr" marker-end="url(#arr)"/>
+<g class="n-loop"><rect x="1040" y="1876" width="300" height="32" rx="4"/><text x="1190" y="1892" text-anchor="middle" dominant-baseline="central" class="node-title">FOR prop in properties</text></g>
+<line x1="1190" y1="1908" x2="1190" y2="1926" class="arr-y" marker-end="url(#arr-y)"/>
+<g class="n-decision"><rect x="1040" y="1926" width="300" height="32" rx="4"/><text x="1190" y="1942" text-anchor="middle" dominant-baseline="central" class="node-title">prop.owner not None?</text></g>
+<line x1="1190" y1="1958" x2="1190" y2="1976" class="arr-y" marker-end="url(#arr-y)"/>
+<g class="n-proc"><rect x="1040" y="1976" width="300" height="28" rx="4"/><text x="1190" y="1990" text-anchor="middle" dominant-baseline="central" class="node-title">counts[owner] += 1</text></g>
+<!-- loop back -->
+<line x1="1040" y1="1892" x2="1025" y2="1892" class="arr-lp"/>
+<line x1="1025" y1="1892" x2="1025" y2="2004" class="arr-lp"/>
+<line x1="1190" y1="2004" x2="1190" y2="2004" class="arr-lp"/>
+<line x1="1025" y1="2004" x2="1190" y2="2004" class="arr-lp" marker-end="url(#arr-lp)"/>
+<line x1="1190" y1="2004" x2="1190" y2="2030" class="arr" marker-end="url(#arr)"/>
+<g class="n-return"><rect x="1040" y="2030" width="300" height="28" rx="4"/><text x="1190" y="2044" text-anchor="middle" dominant-baseline="central" class="node-title">return counts</text></g>
+
+<g class="n-return"><rect x="1040" y="2078" width="300" height="28" rx="4"/><text x="1190" y="2092" text-anchor="middle" dominant-baseline="central" class="node-title">size(): return len(properties)</text></g>
+
+
+<!-- ═══════════════════════════════════════════════════════════════ -->
+<!--  SECTION: cards.py -->
+<!-- ═══════════════════════════════════════════════════════════════ -->
+<rect x="700" y="2130" width="660" height="400" rx="8" class="sec-bg sec-bg-cards"/>
+<text x="712" y="2148" class="sec-title sec-title-cards">cards.py — CardDeck</text>
+
+<g class="n-proc"><rect x="720" y="2158" width="280" height="44" rx="4"/><text x="860" y="2174" text-anchor="middle" dominant-baseline="central" class="node-title">__init__(cards)</text><text x="860" y="2191" text-anchor="middle" dominant-baseline="central" class="node-sub">self.cards = list(cards); self.index = 0</text></g>
+
+<!-- draw -->
+<g class="n-decision"><rect x="720" y="2222" width="280" height="32" rx="4"/><text x="860" y="2238" text-anchor="middle" dominant-baseline="central" class="node-title">draw(): cards empty?</text></g>
+<line x1="860" y1="2254" x2="860" y2="2272" class="arr-y" marker-end="url(#arr-y)"/>
+<g class="n-return"><rect x="720" y="2272" width="280" height="28" rx="4"/><text x="860" y="2286" text-anchor="middle" dominant-baseline="central" class="node-title">return None</text></g>
+<line x1="1000" y1="2238" x2="1020" y2="2238" class="arr-no"/>
+<line x1="1020" y1="2238" x2="1020" y2="2318" class="arr-no"/>
+<line x1="1020" y1="2318" x2="1000" y2="2318" class="arr-no" marker-end="url(#arr-n)"/>
+<g class="n-return"><rect x="720" y="2306" width="280" height="28" rx="4"/><text x="860" y="2320" text-anchor="middle" dominant-baseline="central" class="node-title">card = cards[index % len]; index += 1; return card</text></g>
+
+<!-- peek -->
+<g class="n-decision"><rect x="720" y="2354" width="280" height="32" rx="4"/><text x="860" y="2370" text-anchor="middle" dominant-baseline="central" class="node-title">peek(): cards empty?</text></g>
+<line x1="860" y1="2386" x2="860" y2="2404" class="arr-y" marker-end="url(#arr-y)"/>
+<g class="n-return"><rect x="720" y="2404" width="280" height="28" rx="4"/><text x="860" y="2418" text-anchor="middle" dominant-baseline="central" class="node-title">return None</text></g>
+<line x1="1000" y1="2370" x2="1020" y2="2370" class="arr-no"/>
+<line x1="1020" y1="2370" x2="1020" y2="2450" class="arr-no"/>
+<line x1="1020" y1="2450" x2="1000" y2="2450" class="arr-no" marker-end="url(#arr-n)"/>
+<g class="n-return"><rect x="720" y="2438" width="280" height="28" rx="4"/><text x="860" y="2452" text-anchor="middle" dominant-baseline="central" class="node-title">return cards[index % len]  (no advance)</text></g>
+
+<!-- reshuffle, cards_remaining -->
+<g class="n-proc"><rect x="1040" y="2222" width="290" height="44" rx="4"/><text x="1185" y="2238" text-anchor="middle" dominant-baseline="central" class="node-title">reshuffle()</text><text x="1185" y="2255" text-anchor="middle" dominant-baseline="central" class="node-sub">random.shuffle(cards); index = 0</text></g>
+<g class="n-return"><rect x="1040" y="2286" width="290" height="28" rx="4"/><text x="1185" y="2300" text-anchor="middle" dominant-baseline="central" class="node-title">cards_remaining(): return len - (index % len)</text></g>
+<g class="n-return"><rect x="1040" y="2334" width="290" height="28" rx="4"/><text x="1185" y="2348" text-anchor="middle" dominant-baseline="central" class="node-title">__len__(): return len(cards)</text></g>
+
+
+<!-- ═══════════════════════════════════════════════════════════════ -->
+<!--  SECTION: bank.py -->
+<!-- ═══════════════════════════════════════════════════════════════ -->
+<rect x="700" y="2560" width="660" height="480" rx="8" class="sec-bg sec-bg-bank"/>
+<text x="712" y="2578" class="sec-title sec-title-bank">bank.py — Bank</text>
+
+<g class="n-proc"><rect x="720" y="2588" width="280" height="44" rx="4"/><text x="860" y="2604" text-anchor="middle" dominant-baseline="central" class="node-title">__init__()</text><text x="860" y="2621" text-anchor="middle" dominant-baseline="central" class="node-sub">_funds=20580; _loans=[]; _total_collected=0</text></g>
+
+<g class="n-return"><rect x="720" y="2652" width="280" height="28" rx="4"/><text x="860" y="2666" text-anchor="middle" dominant-baseline="central" class="node-title">get_balance(): return _funds</text></g>
+
+<g class="n-proc"><rect x="720" y="2700" width="280" height="44" rx="4"/><text x="860" y="2716" text-anchor="middle" dominant-baseline="central" class="node-title">collect(amount)</text><text x="860" y="2733" text-anchor="middle" dominant-baseline="central" class="node-sub">_funds += amount; _total_collected += amount</text></g>
+
+<!-- pay_out -->
+<g class="n-decision"><rect x="720" y="2764" width="280" height="32" rx="4"/><text x="860" y="2780" text-anchor="middle" dominant-baseline="central" class="node-title">pay_out: amount &lt;= 0?</text></g>
+<line x1="860" y1="2796" x2="860" y2="2814" class="arr-y" marker-end="url(#arr-y)"/>
+<g class="n-return"><rect x="720" y="2814" width="280" height="28" rx="4"/><text x="860" y="2828" text-anchor="middle" dominant-baseline="central" class="node-title">return 0</text></g>
+<line x1="1000" y1="2780" x2="1010" y2="2780" class="arr-no"/>
+<line x1="1010" y1="2780" x2="1010" y2="2862" class="arr-no"/>
+<line x1="1010" y1="2862" x2="1000" y2="2862" class="arr-no" marker-end="url(#arr-n)"/>
+<g class="n-decision"><rect x="720" y="2850" width="280" height="32" rx="4"/><text x="860" y="2866" text-anchor="middle" dominant-baseline="central" class="node-title">amount &gt; _funds?</text></g>
+<line x1="860" y1="2882" x2="860" y2="2900" class="arr-y" marker-end="url(#arr-y)"/>
+<g class="n-error"><rect x="720" y="2900" width="280" height="28" rx="4"/><text x="860" y="2914" text-anchor="middle" dominant-baseline="central" class="node-title">raise ValueError</text></g>
+<line x1="720" y1="2866" x2="710" y2="2866" class="arr-no"/>
+<line x1="710" y1="2866" x2="710" y2="2948" class="arr-no"/>
+<line x1="710" y1="2948" x2="720" y2="2948" class="arr-no" marker-end="url(#arr-n)"/>
+<g class="n-return"><rect x="720" y="2936" width="280" height="28" rx="4"/><text x="860" y="2950" text-anchor="middle" dominant-baseline="central" class="node-title">_funds -= amount; return amount</text></g>
+
+<!-- give_loan -->
+<g class="n-decision"><rect x="1040" y="2588" width="290" height="32" rx="4"/><text x="1185" y="2604" text-anchor="middle" dominant-baseline="central" class="node-title">give_loan: amount &lt;= 0?</text></g>
+<line x1="1185" y1="2620" x2="1185" y2="2638" class="arr-y" marker-end="url(#arr-y)"/>
+<g class="n-return"><rect x="1040" y="2638" width="290" height="28" rx="4"/><text x="1185" y="2652" text-anchor="middle" dominant-baseline="central" class="node-title">return</text></g>
+<line x1="1040" y1="2604" x2="1030" y2="2604" class="arr-no"/>
+<line x1="1030" y1="2604" x2="1030" y2="2686" class="arr-no"/>
+<line x1="1030" y1="2686" x2="1040" y2="2686" class="arr-no" marker-end="url(#arr-n)"/>
+<g class="n-proc"><rect x="1040" y="2674" width="290" height="44" rx="4"/><text x="1185" y="2690" text-anchor="middle" dominant-baseline="central" class="node-title">player.add_money(amount)</text><text x="1185" y="2707" text-anchor="middle" dominant-baseline="central" class="node-sub">_loans_issued.append(); print</text></g>
+
+<g class="n-return"><rect x="1040" y="2738" width="290" height="28" rx="4"/><text x="1185" y="2752" text-anchor="middle" dominant-baseline="central" class="node-title">total_loans_issued(): sum of _loans_issued amounts</text></g>
+<g class="n-return"><rect x="1040" y="2786" width="290" height="28" rx="4"/><text x="1185" y="2800" text-anchor="middle" dominant-baseline="central" class="node-title">loan_count(): return len(_loans_issued)</text></g>
+<g class="n-proc"><rect x="1040" y="2834" width="290" height="44" rx="4"/><text x="1185" y="2850" text-anchor="middle" dominant-baseline="central" class="node-title">summary()</text><text x="1185" y="2867" text-anchor="middle" dominant-baseline="central" class="node-sub">print funds, total_collected, loans</text></g>
+
+
+<!-- ═══════════════════════════════════════════════════════════════ -->
+<!--  SECTION: board.py -->
+<!-- ═══════════════════════════════════════════════════════════════ -->
+<rect x="700" y="3070" width="660" height="560" rx="8" class="sec-bg sec-bg-board"/>
+<text x="712" y="3088" class="sec-title sec-title-board">board.py — Board</text>
+
+<g class="n-proc"><rect x="720" y="3098" width="280" height="44" rx="4"/><text x="860" y="3114" text-anchor="middle" dominant-baseline="central" class="node-title">__init__()</text><text x="860" y="3131" text-anchor="middle" dominant-baseline="central" class="node-sub">groups = _create_groups(); properties = _create_properties()</text></g>
+
+<g class="n-proc"><rect x="720" y="3162" width="280" height="44" rx="4"/><text x="860" y="3178" text-anchor="middle" dominant-baseline="central" class="node-title">_create_groups()</text><text x="860" y="3195" text-anchor="middle" dominant-baseline="central" class="node-sub">return dict of 8 PropertyGroup objects</text></g>
+
+<g class="n-proc"><rect x="720" y="3226" width="280" height="44" rx="4"/><text x="860" y="3242" text-anchor="middle" dominant-baseline="central" class="node-title">_create_properties()</text><text x="860" y="3259" text-anchor="middle" dominant-baseline="central" class="node-sub">return list of 22 Property objects, each linked to a group</text></g>
+
+<!-- get_property_at -->
+<g class="n-loop"><rect x="720" y="3290" width="280" height="32" rx="4"/><text x="860" y="3306" text-anchor="middle" dominant-baseline="central" class="node-title">get_property_at: FOR prop in properties</text></g>
+<line x1="860" y1="3322" x2="860" y2="3340" class="arr-y" marker-end="url(#arr-y)"/>
+<g class="n-decision"><rect x="720" y="3340" width="280" height="32" rx="4"/><text x="860" y="3356" text-anchor="middle" dominant-baseline="central" class="node-title">prop.position == position?</text></g>
+<line x1="860" y1="3372" x2="860" y2="3390" class="arr-y" marker-end="url(#arr-y)"/>
+<g class="n-return"><rect x="720" y="3390" width="280" height="28" rx="4"/><text x="860" y="3404" text-anchor="middle" dominant-baseline="central" class="node-title">return prop</text></g>
+<line x1="1000" y1="3356" x2="1010" y2="3356" class="arr-no"/>
+<line x1="1010" y1="3356" x2="1010" y2="3306" class="arr-lp"/>
+<line x1="1010" y1="3306" x2="1000" y2="3306" class="arr-lp" marker-end="url(#arr-lp)"/>
+<line x1="720" y1="3306" x2="710" y2="3306" class="arr-no"/>
+<line x1="710" y1="3306" x2="710" y2="3440" class="arr-no"/>
+<line x1="710" y1="3440" x2="720" y2="3440" class="arr-no" marker-end="url(#arr-n)"/>
+<g class="n-return"><rect x="720" y="3428" width="280" height="28" rx="4"/><text x="860" y="3442" text-anchor="middle" dominant-baseline="central" class="node-title">return None (exhausted all props)</text></g>
+
+<!-- get_tile_type -->
+<g class="n-decision"><rect x="720" y="3476" width="280" height="32" rx="4"/><text x="860" y="3492" text-anchor="middle" dominant-baseline="central" class="node-title">get_tile_type: position in SPECIAL_TILES?</text></g>
+<line x1="860" y1="3508" x2="860" y2="3526" class="arr-y" marker-end="url(#arr-y)"/>
+<g class="n-return"><rect x="720" y="3526" width="280" height="28" rx="4"/><text x="860" y="3540" text-anchor="middle" dominant-baseline="central" class="node-title">return SPECIAL_TILES[position]</text></g>
+<line x1="1000" y1="3492" x2="1010" y2="3492" class="arr-no"/>
+<line x1="1010" y1="3492" x2="1010" y2="3574" class="arr-no"/>
+<line x1="1010" y1="3574" x2="1000" y2="3574" class="arr-no" marker-end="url(#arr-n)"/>
+<g class="n-decision"><rect x="720" y="3562" width="280" height="32" rx="4"/><text x="860" y="3578" text-anchor="middle" dominant-baseline="central" class="node-title">get_property_at(pos) not None?</text></g>
+<line x1="860" y1="3594" x2="860" y2="3612" class="arr-y" marker-end="url(#arr-y)"/>
+<g class="n-return"><rect x="720" y="3612" width="280" height="28" rx="4"/><text x="860" y="3626" text-anchor="middle" dominant-baseline="central" class="node-title">return "property"</text></g>
+<line x1="720" y1="3578" x2="710" y2="3578" class="arr-no"/>
+<line x1="710" y1="3578" x2="710" y2="3648" class="arr-no"/>
+<line x1="710" y1="3648" x2="720" y2="3648" class="arr-no" marker-end="url(#arr-n)"/>
+<g class="n-return"><rect x="720" y="3636" width="280" height="28" rx="4"/><text x="860" y="3650" text-anchor="middle" dominant-baseline="central" class="node-title">return "blank"</text></g>
+
+<!-- is_purchasable, is_special_tile, properties_owned_by, unowned_properties -->
+<g class="n-return"><rect x="1040" y="3098" width="290" height="44" rx="4"/><text x="1185" y="3114" text-anchor="middle" dominant-baseline="central" class="node-title">is_purchasable(pos)</text><text x="1185" y="3131" text-anchor="middle" dominant-baseline="central" class="node-sub">get_property_at → None?→False; mortgaged?→False; owner None?→True</text></g>
+<g class="n-return"><rect x="1040" y="3162" width="290" height="28" rx="4"/><text x="1185" y="3178" text-anchor="middle" dominant-baseline="central" class="node-title">is_special_tile(pos): return pos in SPECIAL_TILES</text></g>
+<g class="n-return"><rect x="1040" y="3210" width="290" height="28" rx="4"/><text x="1185" y="3226" text-anchor="middle" dominant-baseline="central" class="node-title">properties_owned_by(player): list comp</text></g>
+<g class="n-return"><rect x="1040" y="3258" width="290" height="28" rx="4"/><text x="1185" y="3274" text-anchor="middle" dominant-baseline="central" class="node-title">unowned_properties(): list comp (owner is None)</text></g>
+
+
+<!-- ═══════════════════════════════════════════════════════════════ -->
+<!--  SECTION: ui.py -->
+<!-- ═══════════════════════════════════════════════════════════════ -->
+<rect x="700" y="3660" width="660" height="580" rx="8" class="sec-bg sec-bg-ui"/>
+<text x="712" y="3678" class="sec-title sec-title-ui">ui.py</text>
+
+<g class="n-io"><rect x="720" y="3688" width="280" height="44" rx="4"/><text x="860" y="3704" text-anchor="middle" dominant-baseline="central" class="node-title">print_banner(title)</text><text x="860" y="3721" text-anchor="middle" dominant-baseline="central" class="node-sub">print === line; title; === line</text></g>
+
+<!-- print_player_card -->
+<g class="n-decision"><rect x="720" y="3752" width="280" height="32" rx="4"/><text x="860" y="3768" text-anchor="middle" dominant-baseline="central" class="node-title">print_player_card: in_jail?</text></g>
+<line x1="860" y1="3784" x2="860" y2="3802" class="arr-y" marker-end="url(#arr-y)"/>
+<g class="n-proc"><rect x="720" y="3802" width="280" height="28" rx="4"/><text x="860" y="3816" text-anchor="middle" dominant-baseline="central" class="node-title">jail_line = "IN JAIL (turn N/3)"</text></g>
+<line x1="1000" y1="3768" x2="1010" y2="3768" class="arr-no"/>
+<g class="n-proc"><rect x="1012" y="3752" width="60" height="32" rx="4"/><text x="1042" y="3768" text-anchor="middle" dominant-baseline="central" class="node-title">jail_line=""</text></g>
+<line x1="860" y1="3830" x2="860" y2="3848" class="arr" marker-end="url(#arr)"/>
+<g class="n-proc"><rect x="720" y="3848" width="280" height="28" rx="4"/><text x="860" y="3862" text-anchor="middle" dominant-baseline="central" class="node-title">print name, balance, worth, position, jail_line</text></g>
+<line x1="860" y1="3876" x2="860" y2="3894" class="arr" marker-end="url(#arr)"/>
+<g class="n-decision"><rect x="720" y="3894" width="280" height="32" rx="4"/><text x="860" y="3910" text-anchor="middle" dominant-baseline="central" class="node-title">get_out_of_jail_cards &gt; 0?</text></g>
+<line x1="860" y1="3926" x2="860" y2="3944" class="arr-y" marker-end="url(#arr-y)"/>
+<g class="n-io"><rect x="720" y="3944" width="280" height="28" rx="4"/><text x="860" y="3958" text-anchor="middle" dominant-baseline="central" class="node-title">print jail card count</text></g>
+<line x1="860" y1="3972" x2="860" y2="3990" class="arr" marker-end="url(#arr)"/>
+<g class="n-decision"><rect x="720" y="3990" width="280" height="32" rx="4"/><text x="860" y="4006" text-anchor="middle" dominant-baseline="central" class="node-title">has properties?</text></g>
+<line x1="860" y1="4022" x2="860" y2="4040" class="arr-y" marker-end="url(#arr-y)"/>
+<g class="n-loop"><rect x="720" y="4040" width="280" height="32" rx="4"/><text x="860" y="4056" text-anchor="middle" dominant-baseline="central" class="node-title">FOR prop in properties → print each</text></g>
+<line x1="1000" y1="4006" x2="1010" y2="4006" class="arr-no"/>
+<g class="n-io"><rect x="1012" y="3990" width="100" height="32" rx="4"/><text x="1062" y="4006" text-anchor="middle" dominant-baseline="central" class="node-title">print "none"</text></g>
+
+<!-- print_standings -->
+<g class="n-proc"><rect x="1040" y="3688" width="290" height="44" rx="4"/><text x="1185" y="3704" text-anchor="middle" dominant-baseline="central" class="node-title">print_standings(players)</text><text x="1185" y="3721" text-anchor="middle" dominant-baseline="central" class="node-sub">sort by net_worth desc; FOR each → print rank line</text></g>
+
+<!-- print_board_ownership -->
+<g class="n-proc"><rect x="1040" y="3752" width="290" height="56" rx="4"/><text x="1185" y="3768" text-anchor="middle" dominant-baseline="central" class="node-title">print_board_ownership(board)</text><text x="1185" y="3785" text-anchor="middle" dominant-baseline="central" class="node-sub">print header; FOR prop in board.properties</text><text x="1185" y="3801" text-anchor="middle" dominant-baseline="central" class="node-sub">→ print pos, name, price, rent, owner</text></g>
+
+<!-- format_currency -->
+<g class="n-return"><rect x="1040" y="3828" width="290" height="28" rx="4"/><text x="1185" y="3844" text-anchor="middle" dominant-baseline="central" class="node-title">format_currency(amount): return "$N,NNN"</text></g>
+
+<!-- safe_int_input -->
+<g class="n-io"><rect x="1040" y="3876" width="290" height="32" rx="4"/><text x="1185" y="3892" text-anchor="middle" dominant-baseline="central" class="node-title">safe_int_input(prompt, default)</text></g>
+<line x1="1185" y1="3908" x2="1185" y2="3926" class="arr" marker-end="url(#arr)"/>
+<g class="n-decision"><rect x="1040" y="3926" width="290" height="32" rx="4"/><text x="1185" y="3942" text-anchor="middle" dominant-baseline="central" class="node-title">int(input(prompt)) succeeds?</text></g>
+<line x1="1185" y1="3958" x2="1185" y2="3976" class="arr-y" marker-end="url(#arr-y)"/>
+<g class="n-return"><rect x="1040" y="3976" width="290" height="28" rx="4"/><text x="1185" y="3990" text-anchor="middle" dominant-baseline="central" class="node-title">return int value</text></g>
+<line x1="1040" y1="3942" x2="1030" y2="3942" class="arr-no"/>
+<line x1="1030" y1="3942" x2="1030" y2="4024" class="arr-no"/>
+<line x1="1030" y1="4024" x2="1040" y2="4024" class="arr-no" marker-end="url(#arr-n)"/>
+<g class="n-return"><rect x="1040" y="4012" width="290" height="28" rx="4"/><text x="1185" y="4026" text-anchor="middle" dominant-baseline="central" class="node-title">except: return default</text></g>
+
+<!-- confirm -->
+<g class="n-io"><rect x="1040" y="4060" width="290" height="32" rx="4"/><text x="1185" y="4076" text-anchor="middle" dominant-baseline="central" class="node-title">confirm(prompt): input(prompt)</text></g>
+<line x1="1185" y1="4092" x2="1185" y2="4110" class="arr" marker-end="url(#arr)"/>
+<g class="n-return"><rect x="1040" y="4110" width="290" height="28" rx="4"/><text x="1185" y="4126" text-anchor="middle" dominant-baseline="central" class="node-title">return input.strip().lower() == "y"</text></g>
+
+<!-- _menu_trade (below interactive_menu section) -->
+<rect x="10" y="4650" width="680" height="280" rx="8" class="sec-bg sec-bg-main"/>
+<text x="22" y="4668" class="sec-title sec-title-main">game.py — _menu_trade(player)</text>
+<g class="n-decision"><rect x="30" y="4678" width="290" height="32" rx="4"/><text x="175" y="4694" text-anchor="middle" dominant-baseline="central" class="node-title">others list empty?</text></g>
+<line x1="175" y1="4710" x2="175" y2="4728" class="arr-y" marker-end="url(#arr-y)"/>
+<g class="n-return"><rect x="90" y="4728" width="170" height="28" rx="4"/><text x="175" y="4742" text-anchor="middle" dominant-baseline="central" class="node-title">print "no others"; return</text></g>
+<line x1="30" y1="4694" x2="20" y2="4694" class="arr-no"/>
+<line x1="20" y1="4694" x2="20" y2="4778" class="arr-no"/>
+<line x1="20" y1="4778" x2="30" y2="4778" class="arr-no" marker-end="url(#arr-n)"/>
+<g class="n-io"><rect x="30" y="4778" width="290" height="32" rx="4"/><text x="175" y="4794" text-anchor="middle" dominant-baseline="central" class="node-title">print players; input idx; if invalid idx return</text></g>
+<line x1="175" y1="4810" x2="175" y2="4828" class="arr" marker-end="url(#arr)"/>
+<g class="n-decision"><rect x="30" y="4828" width="290" height="32" rx="4"/><text x="175" y="4844" text-anchor="middle" dominant-baseline="central" class="node-title">player.properties empty?</text></g>
+<line x1="320" y1="4844" x2="330" y2="4844" class="arr-y" marker-end="url(#arr-y)"/>
+<g class="n-return"><rect x="330" y="4828" width="110" height="32" rx="4"/><text x="385" y="4844" text-anchor="middle" dominant-baseline="central" class="node-title">print; return</text></g>
+<line x1="175" y1="4860" x2="175" y2="4878" class="arr-no" marker-end="url(#arr-n)"/>
+<g class="n-io"><rect x="30" y="4878" width="290" height="32" rx="4"/><text x="175" y="4894" text-anchor="middle" dominant-baseline="central" class="node-title">print props; input pidx; if invalid pidx return; input cash → trade()</text></g>
+
+</svg>
+</div>
+</body>
+</html>

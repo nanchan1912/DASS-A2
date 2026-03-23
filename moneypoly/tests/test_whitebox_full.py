@@ -992,9 +992,13 @@ class TestAdditionalFailingCases(unittest.TestCase):
         self.assertEqual(player.balance, start_balance + config.GO_SALARY)
 
     def test_unowned_property_should_not_charge_rent(self):
+        game = Game(["A", "B"])
+        tenant = game.players[0]
         prop = Property("Free Lot", 12, 140, 14)
         self.assertEqual(prop.owner, None)
-        self.assertEqual(prop.get_rent(), 0)
+        tenant_start = tenant.balance
+        game.pay_rent(tenant, prop)
+        self.assertEqual(tenant.balance, tenant_start)
 
     def test_trade_negative_cash_should_fail_gracefully(self):
         game = Game(["A", "B"])
