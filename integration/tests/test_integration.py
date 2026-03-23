@@ -73,6 +73,16 @@ class TestSystemIntegration:
         with pytest.raises(ValueError):
             system['crew_mgmt'].get_skill_level(999, DRIVER)
 
+    def test_list_crew_by_role_returns_only_active_members(self, system):
+        """Verify crew role listings exclude inactive members."""
+        driver_id = system['registration'].register_member("Active Driver", DRIVER)
+        retired_id = system['registration'].register_member("Inactive Driver", DRIVER)
+        system['registration'].deactivate_member(retired_id)
+
+        listed_ids = [member.member_id for member in system['crew_mgmt'].list_crew_by_role(DRIVER)]
+        assert driver_id in listed_ids
+        assert retired_id not in listed_ids
+
     # ============================================================================
     # BUSINESS RULE 2: Only crew members with DRIVER role may enter races
     # ============================================================================
@@ -425,6 +435,14 @@ class TestSystemIntegration:
         new_cash = system['inventory'].get_cash_balance()
         assert new_cash < initial_cash  # Cash should decrease
 
+    def test_fuel_module_rejects_unknown_vehicle_ids(self, system):
+        """Verify fuel actions cannot target vehicles missing from inventory."""
+        with pytest.raises(ValueError):
+            system['fuel'].get_fuel_level(999)
+
+        with pytest.raises(ValueError):
+            system['fuel'].refuel_vehicle(999)
+
     # ============================================================================
     # ERROR HANDLING AND EDGE CASES
     # ============================================================================
@@ -461,6 +479,14 @@ class TestSystemIntegration:
         """Verify inventory prevents negative cash balance."""
         with pytest.raises(ValueError):
             system['inventory'].deduct_cash(500000)  # More than initial 100000
+
+    def test_reputation_module_rejects_unknown_member_ids(self, system):
+        """Verify reputation tracking cannot create phantom crew members."""
+        with pytest.raises(ValueError):
+            system['reputation'].get_member_reputation(999)
+
+        with pytest.raises(ValueError):
+            system['reputation'].get_unlocked_content(999)
 
     # ============================================================================
     # COMPREHENSIVE SYSTEM STATE TESTS
