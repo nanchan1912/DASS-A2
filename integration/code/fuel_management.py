@@ -15,9 +15,17 @@ class FuelManagementModule:
         """
         self.inventory = inventory
         self.fuel_levels = {}  # vehicle_id -> fuel level (0-100)
-    
+
+    def _require_vehicle(self, vehicle_id):
+        """Return the vehicle if it exists, otherwise raise an error."""
+        vehicle = self.inventory.get_vehicle(vehicle_id)
+        if vehicle is None:
+            raise ValueError(f"Vehicle {vehicle_id} not found")
+        return vehicle
+
     def initialize_vehicle_fuel(self, vehicle_id):
         """Initialize fuel level for a vehicle (full tank)."""
+        self._require_vehicle(vehicle_id)
         self.fuel_levels[vehicle_id] = 100
     
     def refuel_vehicle(self, vehicle_id, cost_per_unit=100):
@@ -31,6 +39,8 @@ class FuelManagementModule:
         Raises:
             ValueError: If vehicle not found or insufficient cash
         """
+        self._require_vehicle(vehicle_id)
+
         if vehicle_id not in self.fuel_levels:
             self.initialize_vehicle_fuel(vehicle_id)
         
@@ -46,6 +56,7 @@ class FuelManagementModule:
     
     def get_fuel_level(self, vehicle_id):
         """Get current fuel level for a vehicle."""
+        self._require_vehicle(vehicle_id)
         if vehicle_id not in self.fuel_levels:
             self.initialize_vehicle_fuel(vehicle_id)
         return self.fuel_levels[vehicle_id]
@@ -61,6 +72,8 @@ class FuelManagementModule:
         Raises:
             ValueError: If insufficient fuel or invalid race type
         """
+        self._require_vehicle(vehicle_id)
+
         valid_types = [RACE_TYPE_STREET, RACE_TYPE_CIRCUIT, RACE_TYPE_DRAG]
         if race_type not in valid_types:
             raise ValueError(f"Invalid race type: {race_type}")
@@ -93,6 +106,8 @@ class FuelManagementModule:
         Returns:
             True if fuel sufficient, False otherwise
         """
+        self._require_vehicle(vehicle_id)
+
         consumption_map = {
             RACE_TYPE_STREET: FUEL_CONSUMPTION_STREET,
             RACE_TYPE_CIRCUIT: FUEL_CONSUMPTION_CIRCUIT,

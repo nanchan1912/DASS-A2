@@ -35,9 +35,17 @@ class ReputationSystem:
             ReputationTier.GOLD: ["Underground Championship", "Sponsored Event"],
             ReputationTier.PLATINUM: ["World Tour", "Legendary Race", "VIP Heist"]
         }
-    
+
+    def _require_member(self, member_id):
+        """Return the member if it exists, otherwise raise an error."""
+        member = self.crew_management.registration.get_member(member_id)
+        if member is None:
+            raise ValueError(f"Member {member_id} not found")
+        return member
+
     def initialize_member_reputation(self, member_id):
         """Initialize reputation for a member."""
+        self._require_member(member_id)
         if member_id not in self.reputation:
             self.reputation[member_id] = 0
             self.tiers[member_id] = ReputationTier.UNKNOWN
@@ -54,9 +62,8 @@ class ReputationSystem:
         Raises:
             ValueError: If member not found
         """
-        if not self.crew_management.registration.member_exists(member_id):
-            raise ValueError(f"Member {member_id} not found")
-        
+        self._require_member(member_id)
+
         self.initialize_member_reputation(member_id)
         
         if points < 0:
@@ -73,9 +80,8 @@ class ReputationSystem:
             member_id: Member ID
             points: Reputation points to reduce
         """
-        if not self.crew_management.registration.member_exists(member_id):
-            raise ValueError(f"Member {member_id} not found")
-        
+        self._require_member(member_id)
+
         self.initialize_member_reputation(member_id)
         
         if points < 0:
@@ -142,10 +148,11 @@ class ReputationSystem:
     def get_reputation_status(self, member_id):
         """Get detailed reputation status for a member."""
         self.initialize_member_reputation(member_id)
-        
+        member = self._require_member(member_id)
+
         return {
             "member_id": member_id,
-            "member_name": self.crew_management.registration.get_member(member_id).name,
+            "member_name": member.name,
             "reputation_points": self.reputation[member_id],
             "tier": self.tiers[member_id],
             "unlocked_content": self.unlocked_content[member_id]
