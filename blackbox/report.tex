@@ -1,0 +1,232 @@
+\documentclass[12pt]{article}
+\usepackage[a4paper,margin=1in]{geometry}
+\usepackage{longtable}
+\usepackage{array}
+\usepackage{booktabs}
+\usepackage{hyperref}
+\usepackage{xcolor}
+\usepackage[T1]{fontenc}
+\usepackage[utf8]{inputenc}
+
+\title{Black Box API Testing Report\\QuickCart REST API}
+\author{}
+\date{}
+
+\begin{document}
+\maketitle
+
+\section{Objective}
+This part of the assignment performs black-box testing on the QuickCart REST API using only the given API documentation. The internal implementation was not available. The testing focused on request validation, response structure, status codes, returned data, and user-visible business rules.
+
+\section{Approach}
+Two kinds of testing were used.
+
+First, manual exploratory testing was used to understand endpoint behavior from the documentation, inspect seeded data through the admin endpoints, and identify likely edge cases.
+
+Second, automated tests were written using only \texttt{pytest} and \texttt{requests}. These tests check:
+\begin{itemize}
+    \item correct HTTP status codes,
+    \item JSON response structure,
+    \item correctness of values returned by the API,
+    \item valid requests,
+    \item invalid inputs,
+    \item missing fields,
+    \item wrong data types,
+    \item boundary values.
+\end{itemize}
+
+The automated suite targets the API at \texttt{http://127.0.0.1:8080/api/v1}. Admin requests use the \texttt{X-Roll-Number} header, and user-scoped requests use both \texttt{X-Roll-Number} and \texttt{X-User-ID}.
+
+\section{Automated Execution Summary}
+The final automated run for the submitted black-box suite produced the following result:
+\begin{itemize}
+    \item Total automated test cases: 44
+    \item Passed: 36
+    \item Failed: 8
+\end{itemize}
+
+The failing tests correspond to real API bugs, not test setup issues.
+
+\section{Test Case Design}
+Table~\ref{tab:testcases} lists the designed black-box test cases. The ``Actual Result'' column records the observed behavior during execution.
+
+\renewcommand{\arraystretch}{1.15}
+\small
+\begin{longtable}{p{0.09\textwidth}p{0.24\textwidth}p{0.2\textwidth}p{0.19\textwidth}p{0.2\textwidth}}
+\caption{Black-box test cases for QuickCart API}\label{tab:testcases}\\
+\toprule
+ID & Input / Endpoint & Expected Output & Justification & Actual Result \\
+\midrule
+\endfirsthead
+\toprule
+ID & Input / Endpoint & Expected Output & Justification & Actual Result \\
+\midrule
+\endhead
+\bottomrule
+\endfoot
+BB01 & \texttt{GET /admin/users} with valid roll header & \texttt{200} with JSON list containing \texttt{user\_id} & Confirms admin inspection endpoint works and returns structured data & Matched expected \\
+BB02 & \texttt{GET /admin/users} without \texttt{X-Roll-Number} & \texttt{401} & Missing required header must be rejected & Matched expected \\
+BB03 & \texttt{GET /admin/users} with non-integer roll header & \texttt{400} & Checks invalid header type handling & Matched expected \\
+BB04 & \texttt{GET /profile} without \texttt{X-User-ID} & \texttt{400} & User endpoints must reject missing user header & Matched expected \\
+BB05 & \texttt{GET /profile} with invalid \texttt{X-User-ID} type & \texttt{400} & Checks wrong data type in required header & Matched expected \\
+BB06 & \texttt{GET /profile} with valid headers & \texttt{200} and profile JSON fields present & Basic valid request test for user profile retrieval & Matched expected \\
+BB07 & \texttt{PUT /profile} with name of length 1 & \texttt{400} & Boundary check for minimum valid name length & Matched expected \\
+BB08 & \texttt{PUT /profile} missing phone field & \texttt{400} & Required-field validation must work & Matched expected \\
+BB09 & \texttt{PUT /profile} with 5-digit phone number & \texttt{400} & Boundary check for exact 10-digit phone rule & Matched expected \\
+BB10 & \texttt{GET /products} list vs admin inactive products & Inactive products should not appear & Confirms filtering rule from documentation & Matched expected \\
+BB11 & \texttt{GET /products/999999} & \texttt{404} & Missing resource should be handled cleanly & Matched expected \\
+BB12 & \texttt{GET /products?search=Apple} & \texttt{200}; returned names should match search & Confirms search behavior & Matched expected \\
+BB13 & \texttt{GET /products?sort=price\_asc} and \texttt{price\_desc} & Returned products should be sorted correctly & Confirms documented sorting support & Matched expected \\
+BB14 & \texttt{POST /addresses} with invalid label & \texttt{400} & Invalid enum-like input should be rejected & Matched expected \\
+BB15 & \texttt{POST /addresses} missing street & \texttt{400} & Required-field validation for address creation & Matched expected \\
+BB16 & \texttt{POST /addresses} with valid 6-digit pincode & \texttt{200} and created address object & Valid positive case for address creation & Failed: API returned \texttt{400 Invalid pincode} \\
+BB17 & \texttt{POST /cart/add} with quantity 0 & \texttt{400} & Boundary test for minimum quantity 1 & Failed: API returned \texttt{200} \\
+BB18 & \texttt{POST /cart/add} with string quantity & \texttt{400} & Wrong data type validation for cart quantity & Matched expected \\
+BB19 & \texttt{POST /cart/add} with missing product id & \texttt{404} & Missing resource handling & Matched expected \\
+BB20 & Add same product twice to cart & Quantity should accumulate to 2 & Confirms documented repeated-add behavior & Matched expected \\
+BB21 & Get cart after repeated add of same product & Item subtotal should equal quantity times unit price & Checks cart item price calculation & Failed: subtotal incorrect \\
+BB22 & Get cart after adding two different products & Cart total should equal sum of item subtotals & Checks cart total calculation and counting of all items & Failed: total incorrect \\
+BB23 & \texttt{POST /coupon/apply} with expired coupon & \texttt{400} & Confirms coupon expiry validation & Matched expected \\
+BB24 & \texttt{POST /wallet/add} with string amount & \texttt{400} & Wrong data type validation for wallet amount & Matched expected \\
+BB25 & \texttt{POST /wallet/add} with amount above 100000 & \texttt{400} & Boundary check for wallet top-up maximum & Matched expected \\
+BB26 & \texttt{POST /wallet/pay} with amount 1 & Wallet balance should reduce by exactly 1 & Confirms exact money deduction logic & Failed: balance reduced by more than 1 \\
+BB27 & \texttt{POST /loyalty/redeem} with 0 points & \texttt{400} & Boundary test for minimum redeemable points & Matched expected \\
+BB28 & \texttt{POST /checkout} with payment method \texttt{UPI} & \texttt{400} & Invalid payment method should be rejected & Matched expected \\
+BB29 & \texttt{POST /checkout} with empty cart & \texttt{400} & Empty cart checkout must not be allowed & Failed: API returned \texttt{200} \\
+BB30 & \texttt{GET /orders/999999} & \texttt{404} & Missing order lookup should fail cleanly & Matched expected \\
+BB31 & \texttt{POST /orders/999999/cancel} & \texttt{404} & Missing order cancellation should fail cleanly & Matched expected \\
+BB32 & \texttt{POST /products/\{id\}/reviews} with rating 6 & \texttt{400} & Boundary test for maximum rating 5 & Matched expected \\
+BB33 & Add a new review and then fetch reviews & Average rating should be a proper decimal value & Checks data correctness for computed average & Failed: average returned as truncated integer \\
+BB34 & \texttt{POST /support/ticket} with subject shorter than 5 chars & \texttt{400} & Boundary validation for subject length & Matched expected \\
+BB35 & \texttt{POST /support/ticket} missing message & \texttt{400} & Required-field validation for ticket creation & Matched expected \\
+BB36 & \texttt{POST /support/ticket} with valid body & \texttt{200}; new ticket status should be OPEN & Valid request for support workflow start & Matched expected \\
+BB37 & Create ticket, move OPEN to IN\_PROGRESS, then try IN\_PROGRESS to OPEN & Final update should return \texttt{400} & Confirms one-way status workflow rule & Failed: API returned \texttt{200} \\
+BB38 & \texttt{GET /admin/products} & JSON list containing \texttt{product\_id} & Verifies admin product inspection structure & Matched expected \\
+BB39 & \texttt{GET /admin/orders} & JSON list containing \texttt{order\_id} & Verifies admin order inspection structure & Matched expected \\
+BB40 & \texttt{GET /admin/carts} & JSON list containing \texttt{cart\_id} & Useful for validating global cart state & Matched expected \\
+BB41 & \texttt{GET /admin/coupons} & JSON list containing \texttt{coupon\_code} & Useful for selecting real coupons during tests & Matched expected \\
+BB42 & \texttt{GET /admin/tickets} & JSON list containing \texttt{ticket\_id} & Useful for support-ticket verification & Matched expected \\
+BB43 & \texttt{GET /admin/addresses} & JSON list containing \texttt{address\_id} & Useful for address-state verification & Matched expected \\
+BB44 & All tested user endpoints & Responses should be JSON with expected structure & Ensures automated checks validate response shapes, not just status codes & Matched expected across passing cases \\
+\end{longtable}
+\normalsize
+
+\section{Why Both Manual and Automated Testing Were Used}
+In black-box testing, test cases are first designed from the API specification without using internal code. Manual testing helps understand how the API behaves in practice, discover seeded data values, and identify useful edge cases. Automated testing then makes those checks repeatable and objective. For this assignment, both were useful:
+\begin{itemize}
+    \item manual testing helped understand the endpoints and data,
+    \item automated pytest cases produced repeatable evidence,
+    \item the final report is based on the automated results and the observed API behavior.
+\end{itemize}
+
+\section{Bug Report}
+The following bugs were reproduced by the automated test suite.
+
+\subsection{Bug 1: Valid 6-digit pincode is rejected}
+\textbf{Endpoint tested:} \texttt{POST /api/v1/addresses}
+
+\textbf{Request payload:}
+\begin{itemize}
+    \item Method: \texttt{POST}
+    \item URL: \texttt{http://127.0.0.1:8080/api/v1/addresses}
+    \item Headers: \texttt{X-Roll-Number: 123456}, \texttt{X-User-ID: 1}
+    \item Body: \texttt{\{"label":"OTHER","street":"12345 Test Street <id>","city":"Delhi","pincode":"110011","is\_default":false\}}
+\end{itemize}
+\textbf{Expected result:} Address should be created successfully with \texttt{200}.\\
+\textbf{Actual result:} API returned \texttt{400} with \texttt{\{"error":"Invalid pincode"\}}.
+
+\subsection{Bug 2: Cart accepts quantity 0}
+\textbf{Endpoint tested:} \texttt{POST /api/v1/cart/add}
+
+\textbf{Request payload:}
+\begin{itemize}
+    \item Method: \texttt{POST}
+    \item URL: \texttt{http://127.0.0.1:8080/api/v1/cart/add}
+    \item Headers: \texttt{X-Roll-Number: 123456}, \texttt{X-User-ID: 1}
+    \item Body: \texttt{\{"product\_id":1,"quantity":0\}}
+\end{itemize}
+\textbf{Expected result:} API should reject quantity 0 with \texttt{400}.\\
+\textbf{Actual result:} API returned \texttt{200} and added the item.
+
+\subsection{Bug 3: Cart item subtotal is calculated incorrectly}
+\textbf{Endpoint tested:} \texttt{GET /api/v1/cart} after adding the same product twice
+
+\textbf{Request payload:}
+\begin{itemize}
+    \item Method: \texttt{GET}
+    \item URL: \texttt{http://127.0.0.1:8080/api/v1/cart}
+    \item Headers: \texttt{X-Roll-Number: 123456}, \texttt{X-User-ID: 1}
+    \item Body: none
+\end{itemize}
+\textbf{Expected result:} For quantity 2 and unit price 120, subtotal should be 240.\\
+\textbf{Actual result:} API returned subtotal \texttt{-16}.
+
+\subsection{Bug 4: Cart total is calculated incorrectly}
+\textbf{Endpoint tested:} \texttt{GET /api/v1/cart} after adding two different products
+
+\textbf{Request payload:}
+\begin{itemize}
+    \item Method: \texttt{GET}
+    \item URL: \texttt{http://127.0.0.1:8080/api/v1/cart}
+    \item Headers: \texttt{X-Roll-Number: 123456}, \texttt{X-User-ID: 1}
+    \item Body: none
+\end{itemize}
+\textbf{Expected result:} Cart total should equal the sum of all item subtotals.\\
+\textbf{Actual result:} API returned total \texttt{120} while item subtotals summed to \texttt{-6}.
+
+\subsection{Bug 5: Wallet payment deducts more than requested}
+\textbf{Endpoint tested:} \texttt{POST /api/v1/wallet/pay}
+
+\textbf{Request payload:}
+\begin{itemize}
+    \item Method: \texttt{POST}
+    \item URL: \texttt{http://127.0.0.1:8080/api/v1/wallet/pay}
+    \item Headers: \texttt{X-Roll-Number: 123456}, \texttt{X-User-ID: 1}
+    \item Body: \texttt{\{"amount":1\}}
+\end{itemize}
+\textbf{Expected result:} Wallet balance should decrease by exactly 1.\\
+\textbf{Actual result:} The observed balance dropped by more than 1, showing incorrect deduction logic.
+
+\subsection{Bug 6: Checkout allows an empty cart}
+\textbf{Endpoint tested:} \texttt{POST /api/v1/checkout}
+
+\textbf{Request payload:}
+\begin{itemize}
+    \item Method: \texttt{POST}
+    \item URL: \texttt{http://127.0.0.1:8080/api/v1/checkout}
+    \item Headers: \texttt{X-Roll-Number: 123456}, \texttt{X-User-ID: 1}
+    \item Body: \texttt{\{"payment\_method":"COD"\}}
+\end{itemize}
+\textbf{Expected result:} API should reject empty-cart checkout with \texttt{400}.\\
+\textbf{Actual result:} API returned \texttt{200} and created an order.
+
+\subsection{Bug 7: Review average is not returned as a proper decimal}
+\textbf{Endpoint tested:} \texttt{GET /api/v1/products/\{id\}/reviews} after adding a new review
+
+\textbf{Request payload:}
+\begin{itemize}
+    \item Method: \texttt{GET}
+    \item URL: \texttt{http://127.0.0.1:8080/api/v1/products/1/reviews} (product id varies by test data)
+    \item Headers: \texttt{X-Roll-Number: 123456}, \texttt{X-User-ID: 1}
+    \item Body: none
+\end{itemize}
+\textbf{Expected result:} Average rating should be the true decimal average.\\
+\textbf{Actual result:} API returned a truncated integer value such as \texttt{3} instead of the correct decimal average.
+
+\subsection{Bug 8: Support ticket workflow allows backward status transition}
+\textbf{Endpoint tested:} \texttt{PUT /api/v1/support/tickets/\{ticket\_id\}}
+
+\textbf{Request payload:}
+\begin{itemize}
+    \item Method: \texttt{PUT}
+    \item URL: \texttt{http://127.0.0.1:8080/api/v1/support/tickets/<ticket\_id>}
+    \item Headers: \texttt{X-Roll-Number: 123456}, \texttt{X-User-ID: 1}
+    \item Body: \texttt{\{"status":"OPEN"\}} after the ticket is already in \texttt{IN\_PROGRESS}
+\end{itemize}
+\textbf{Expected result:} API should reject the backward transition with \texttt{400}.\\
+\textbf{Actual result:} API returned \texttt{200} and allowed the status change.
+
+\section{Conclusion}
+The QuickCart black-box suite covers valid inputs, invalid inputs, missing fields, wrong data types, and boundary values using only the published API behavior. The final automated run found 8 confirmed API bugs while 36 other tests passed successfully. This shows that the API has many correct validation paths, but still contains important defects in address validation, cart calculation, wallet deduction, checkout validation, review averaging, and support-ticket workflow.
+
+\end{document}
