@@ -145,7 +145,8 @@ class CrewManagementModule:
     
     def list_crew_by_role(self, role):
         """Get all active crew members with a specific role."""
-        return self.registration.get_members_by_role(role)
+        crew = self.registration.get_members_by_role(role)
+        return [member for member in crew if member.is_active]
     
     def get_available_drivers(self):
         """Get list of available (active) drivers."""
